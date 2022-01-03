@@ -1,4 +1,8 @@
 .vscode/**
+
+! asmhead.nas
+! ip10.nas
+! nasfunc.nas
 *.bin
 *.lst
 *.hrb
@@ -10,6 +14,4 @@
 *.img
 *.bim
 *.nas
-! asmhead.nas
-! ip10.nas
-! nasfunc.nas
+
