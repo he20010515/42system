@@ -9,3 +9,7 @@
 *.sys
 *.img
 *.bim
+*.nas
+! asmhead.nas
+! ip10.nas
+! nasfunc.nas
