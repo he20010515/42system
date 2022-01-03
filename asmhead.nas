@@ -1,5 +1,6 @@
 ; haribote-os boot asm
 ; TAB=4
+;这个文件将会在以后的学习中得到解释,日语的注释也将会逐步修改成中文
 
 BOTPAK	EQU		0x00280000		; bootpackのロード先
 DSKCAC	EQU		0x00100000		; ディスクキャッシュの場所
