@@ -12,6 +12,7 @@ void io_cli(void);
 void io_sti(void);
 void io_stihlt(void);
 void io_out8(int port, int data);
+int io_in8(int port);
 int io_load_eflags(void);
 void io_store_eflags(int eflags);
 void load_gdtr(int limit, int addr);
@@ -90,3 +91,15 @@ void inthandler2c(int *esp);
 #define PIC1_ICW2 0x00a1
 #define PIC1_ICW3 0x00a1
 #define PIC1_ICW4 0x00a1
+
+//fifo.c
+#define FLAGS_OVERRUN 0x0001
+struct FIFO8
+{
+    unsigned char *buf;
+    int p, q, size, free, flags;
+};
+void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf);
+int fifo8_put(struct FIFO8 *fifo, unsigned char data);
+int fifo8_get(struct FIFO8 *fifo);
+int fifo8_status(struct FIFO8 *fifo);
