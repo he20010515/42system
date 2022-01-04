@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 struct FIFO8 keyfifo;
+struct FIFO8 mousefifo;
 
 #define PORT_KEYDAT 0x0060
 void init_pic(void)
@@ -47,10 +48,10 @@ void inthandler27(int *esp)
 }
 void inthandler2c(int *esp)
 {
-    struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
-    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, "INT 2C(IRQ-1):PS/2 Mouse");
-    for (;;)
-    {
-        io_hlt();
-    }
+    unsigned char data;
+    io_out8(PIC1_OCW2, 0x64);
+    io_out8(PIC0_OCW2, 0x62); //中断受理完毕
+    data = io_in8(PORT_KEYDAT);
+    fifo8_put(&mousefifo, data);
+    return;
 }
