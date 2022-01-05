@@ -2,7 +2,7 @@
 ; TAB=4
 ;这个文件将会在以后的学习中得到解释,日语的注释也将会逐步修改成中文
 
-BOTPAK	EQU		0x00280000		; bootpackのロード先
+BOTPAK	EQU		0x00280000		; bootpack启动位置
 DSKCAC	EQU		0x00100000		; ディスクキャッシュの場所
 DSKCAC0	EQU		0x00008000		; ディスクキャッシュの場所（リアルモード）
 
@@ -32,19 +32,19 @@ VRAM	EQU		0x0ff8			; グラフィックバッファの開始番地
 		INT		0x16 			; keyboard BIOS
 		MOV		[LEDS],AL
 
-; PICが一切の割り込みを受け付けないようにする
-;	AT互換機の仕様では、PICの初期化をするなら、
-;	こいつをCLI前にやっておかないと、たまにハングアップする
-;	PICの初期化はあとでやる
+; PIC 关闭一切中断
+;	根据AT兼容机的规格,如果要初始化PIC,
+;	必须在CLI之前进行,否则有时会挂起
+;	随后进行PIC的初始化
 
 		MOV		AL,0xff
 		OUT		0x21,AL
-		NOP						; OUT命令を連続させるとうまくいかない機種があるらしいので
+		NOP						; 如果连续执行OUT指令,有的垃圾CPU可能会无法正常运行
 		OUT		0xa1,AL
 
-		CLI						; さらにCPUレベルでも割り込み禁止
+		CLI						; 禁止CPU级别的中断
 
-; CPUから1MB以上のメモリにアクセスできるように、A20GATEを設定
+; 为了让CPU能够访问1mb以上的内存空间,设定A20GATE
 
 		CALL	waitkbdout
 		MOV		AL,0xd1
@@ -54,41 +54,41 @@ VRAM	EQU		0x0ff8			; グラフィックバッファの開始番地
 		OUT		0x60,AL
 		CALL	waitkbdout
 
-; プロテクトモード移行
+; 切换到保护模式
 
-[INSTRSET "i486p"]				; 486の命令まで使いたいという記述
+[INSTRSET "i486p"]				; 想要使用486指令的叙述
 
-		LGDT	[GDTR0]			; 暫定GDTを設定
+		LGDT	[GDTR0]			; 临时设定GDT
 		MOV		EAX,CR0
-		AND		EAX,0x7fffffff	; bit31を0にする（ページング禁止のため）
-		OR		EAX,0x00000001	; bit0を1にする（プロテクトモード移行のため）
+		AND		EAX,0x7fffffff	; 设bit31为0,为了禁止
+		OR		EAX,0x00000001	; 设定bit0为1,为了切换到保护模式
 		MOV		CR0,EAX
 		JMP		pipelineflush
 pipelineflush:
-		MOV		AX,1*8			;  読み書き可能セグメント32bit
+		MOV		AX,1*8			;  可读写的段32bit
 		MOV		DS,AX
 		MOV		ES,AX
 		MOV		FS,AX
 		MOV		GS,AX
 		MOV		SS,AX
 
-; bootpackの転送
+; bootpack加载到内存中
 
-		MOV		ESI,bootpack	; 転送元
-		MOV		EDI,BOTPAK		; 転送先
+		MOV		ESI,bootpack	; 源头
+		MOV		EDI,BOTPAK		; 目的地
 		MOV		ECX,512*1024/4
 		CALL	memcpy
 
-; ついでにディスクデータも本来の位置へ転送
+; 磁盘数据最终转送到他本来的位置去
 
-; まずはブートセクタから
+; 从启动扇区开始
 
 		MOV		ESI,0x7c00		; 転送元
 		MOV		EDI,DSKCAC		; 転送先
 		MOV		ECX,512/4
 		CALL	memcpy
 
-; 残り全部
+; 剩余的全部
 
 		MOV		ESI,DSKCAC0+512	; 転送元
 		MOV		EDI,DSKCAC+512	; 転送先
