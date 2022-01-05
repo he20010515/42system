@@ -6,7 +6,6 @@ extern struct FIFO8 mousefifo;
 void HariMain(void)
 {
 	struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
-
 	char tempstr[64];
 	char mcoursor[16 * 16], keybuf[32], mousebuf[128];
 	struct MOUSE_DEC mdec;
@@ -20,14 +19,19 @@ void HariMain(void)
 	init_keyboard();
 	enable_mouse();
 
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+	unsigned int memtotal = memtest(0x00400000, 0xbfffffff);
+
+	memman_init(memman);
+	memman_free(memman, 0x00001000, 0x0009e000);
+	memman_free(memman, 0x00400000, memtotal - 0x00400000);
 	io_sti(); //IDT/PIC初始化已经完成,开放CPU中断
 	init_palette();
 	init_screen8(binfo->vram, binfo->scrnx, binfo->scrny);
 
 	io_out8(PIC0_IMR, 0xf9); //开放PIC1和键盘中断
 	io_out8(PIC1_IMR, 0xef); //开放鼠标中断
-	unsigned int memtotal = memtest(0x00400000, 0xbfffffff);
-	sprintf(tempstr, "total memory:%dMB", memtotal / (1024 * 1024));
+	sprintf(tempstr, "total memory:%dMB   free:%d KB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfonts8_asc(binfo->vram, binfo->scrnx, 0, 16 * 3, COL8_FFFFFF, tempstr);
 	for (;;)
 	{
