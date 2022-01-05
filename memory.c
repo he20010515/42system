@@ -151,3 +151,16 @@ unsigned int memtest(unsigned int start, unsigned int end)
     }
     return i;
 }
+
+unsigned memman_alloc_4k(struct MEMMAN *man, unsigned int size)
+{
+    size = (size + 0xfff) & 0xfffff000;
+    return memman_alloc(man, size);
+}
+
+unsigned memman_free_4k(struct MEMMAN *man, unsigned int addr, unsigned int size)
+{
+    int i;
+    size = (size + 0xfff) & 0xfffff000;
+    return memman_free(man, addr, size);
+}
