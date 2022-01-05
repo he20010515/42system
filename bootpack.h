@@ -20,6 +20,9 @@ void load_idtr(int limit, int addr);
 void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
+unsigned int memtest_sub(unsigned int start, unsigned int end);
+int load_cr0(void);
+void store_cr0(int cr0);
 //dsctbl.c
 #define ADR_IDT 0x0026f800
 #define LIMIT_IDT 0x000007ff
@@ -103,3 +106,26 @@ void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf);
 int fifo8_put(struct FIFO8 *fifo, unsigned char data);
 int fifo8_get(struct FIFO8 *fifo);
 int fifo8_status(struct FIFO8 *fifo);
+//mouse.c
+struct MOUSE_DEC
+{
+    unsigned char buf[3], phase;
+    int x, y, btn;
+};
+
+#define PORT_KEYDAT 0x0060
+#define PORT_KEYSTA 0x0064
+#define PORT_KEYCMD 0x0064
+#define KEYSTA_SEND_NOTREADY 0x02
+#define KEYCMD_WRITE_MODE 0x60
+#define KBC_MODE 0x47
+#define KEYCMD_SENDTO_MOUSE 0xd4
+#define MOUSECMD_ENABLE 0xf4
+int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data);
+
+//keyboard.c
+void init_keyboard(void);
+void wait_KBC_sendready(void);
+
+//memory.c
+unsigned int memtest(unsigned int start, unsigned int end);

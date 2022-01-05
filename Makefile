@@ -1,5 +1,6 @@
 OBJS_BOOTPACK = bootpack.obj naskfunc.obj hankaku.obj graphic.obj \
-				dsctbl.obj int.obj fifo.obj
+				dsctbl.obj int.obj fifo.obj mouse.obj keyboard.obj \
+				memory.obj
 
 
 TOOLPATH = ../42system_doc/tolset/z_tools/

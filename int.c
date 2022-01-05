@@ -1,9 +1,5 @@
 #include "bootpack.h"
 #include <stdio.h>
-
-struct FIFO8 keyfifo;
-struct FIFO8 mousefifo;
-
 #define PORT_KEYDAT 0x0060
 void init_pic(void)
 /* PIC初始化 */
@@ -27,15 +23,7 @@ void init_pic(void)
     return;
 }
 
-void inthandler21(int *esp)
-{
-    struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
-    unsigned char data, s[4];
-    io_out8(PIC0_OCW2, 0x61); //通知PIC IRQ-01已经受理完毕
-    data = io_in8(PORT_KEYDAT);
-    fifo8_put(&keyfifo, data);
-    return;
-}
+
 
 void inthandler27(int *esp)
 {
@@ -45,13 +33,4 @@ void inthandler27(int *esp)
     {
         io_hlt();
     }
-}
-void inthandler2c(int *esp)
-{
-    unsigned char data;
-    io_out8(PIC1_OCW2, 0x64);
-    io_out8(PIC0_OCW2, 0x62); //中断受理完毕
-    data = io_in8(PORT_KEYDAT);
-    fifo8_put(&mousefifo, data);
-    return;
 }

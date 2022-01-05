@@ -3,94 +3,6 @@
 #include "stdio.h"
 extern struct FIFO8 keyfifo;
 extern struct FIFO8 mousefifo;
-
-#define PORT_KEYDAT 0x0060
-#define PORT_KEYSTA 0x0064
-#define PORT_KEYCMD 0x0064
-#define KEYSTA_SEND_NOTREADY 0x02
-#define KEYCMD_WRITE_MODE 0x60
-#define KBC_MODE 0x47
-#define KEYCMD_SENDTO_MOUSE 0xd4
-#define MOUSECMD_ENABLE 0xf4
-
-void wait_KBC_sendready(void)
-{
-	//等待键盘控制器电路准备完毕
-	for (;;)
-	{
-		if ((io_in8(PORT_KEYSTA) & KEYSTA_SEND_NOTREADY) == 0)
-		{
-			break;
-		}
-	}
-	return;
-}
-
-void init_keyboard(void)
-{
-	//初始化键盘控制器电路
-	wait_KBC_sendready();
-	io_out8(PORT_KEYCMD, KEYCMD_WRITE_MODE);
-	wait_KBC_sendready();
-	io_out8(PORT_KEYDAT, KBC_MODE);
-	return;
-}
-void enable_mouse(void)
-{
-	wait_KBC_sendready();
-	io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
-	wait_KBC_sendready();
-	io_out8(PORT_KEYDAT, MOUSECMD_ENABLE);
-	return;
-}
-
-struct MOUSE_DEC
-{
-	unsigned char buf[3], phase;
-	int x, y, btn;
-};
-int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data)
-{
-	switch (mdec->phase)
-	{
-	case 0:
-		if (data == 0xfa)
-		{
-			mdec->phase = 1;
-		}
-		return 0;
-	case 1:
-		if ((data & 0xc8) == 0x08) //如果第一个字节正确
-		{
-			mdec->buf[0] = data;
-			mdec->phase = 2;
-			return 0;
-		}
-	case 2:
-		mdec->buf[1] = data;
-		mdec->phase = 3;
-		return 0;
-	case 3:
-		mdec->buf[2] = data;
-		mdec->phase = 1;
-		mdec->btn = mdec->buf[0] & 0x07; //0b00000111 取出低三位的值
-		mdec->x = mdec->buf[1];
-		mdec->y = mdec->buf[2];
-
-		if ((mdec->buf[0] & 0x10) != 0)
-		{
-			mdec->x |= 0xffffff00;
-		}
-		if ((mdec->buf[0] & 0x20) != 0)
-		{
-			mdec->y |= 0xffffff00;
-		}
-		mdec->y = -mdec->y;
-		return 1;
-	default:
-		return -1;
-	}
-}
 void HariMain(void)
 {
 	struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
@@ -114,7 +26,9 @@ void HariMain(void)
 
 	io_out8(PIC0_IMR, 0xf9); //开放PIC1和键盘中断
 	io_out8(PIC1_IMR, 0xef); //开放鼠标中断
-
+	unsigned int memtotal = memtest(0x00400000, 0xbfffffff);
+	sprintf(tempstr, "total memory:%dMB", memtotal / (1024 * 1024));
+	putfonts8_asc(binfo->vram, binfo->scrnx, 0, 16 * 3, COL8_FFFFFF, tempstr);
 	for (;;)
 	{
 		io_cli();
