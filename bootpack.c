@@ -3,7 +3,7 @@
 #include "stdio.h"
 extern struct FIFO8 keyfifo;
 extern struct FIFO8 mousefifo;
-
+extern struct TIMERCTL timerctl;
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title)
 {
 	static char closebtn[14][16] = {
@@ -69,16 +69,20 @@ void HariMain(void)
 	struct MOUSE_DEC mdec;
 	int i;
 	int mx = 0, my = 0;
-	fifo8_init(&keyfifo, 32, keybuf);
-	fifo8_init(&mousefifo, 128, mousebuf);
 	init_gdtidt();
 	init_pic();
+	io_sti(); //IDT/PIC初始化已经完成,开放CPU中断
+
+	fifo8_init(&keyfifo, 32, keybuf);
+	fifo8_init(&mousefifo, 128, mousebuf);
+	init_pit();
 	init_keyboard();
 	enable_mouse();
 
+	io_out8(PIC0_IMR, 0xf9); //开放PIC1和键盘中断
+	io_out8(PIC1_IMR, 0xef); //开放鼠标中断
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
 	unsigned int memtotal = memtest(0x00400000, 0xbfffffff);
-	unsigned int count = 0;
 	memman_init(memman);
 	memman_free(memman, 0x00001000, 0x0009e000);
 	memman_free(memman, 0x00400000, memtotal - 0x00400000);
@@ -86,7 +90,6 @@ void HariMain(void)
 	struct SHEET *sht_back, *sht_mouse, *sht_win;
 	unsigned char *buf_back, buf_mouse[16 * 16], *buf_win;
 
-	io_sti(); //IDT/PIC初始化已经完成,开放CPU中断
 	init_palette();
 
 	shtctl = shtctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
@@ -110,15 +113,13 @@ void HariMain(void)
 	sheet_updown(sht_win, 1);
 	sheet_updown(sht_mouse, 2);
 
-	io_out8(PIC0_IMR, 0xf9); //开放PIC1和键盘中断
-	io_out8(PIC1_IMR, 0xef); //开放鼠标中断
 	sprintf(tempstr, "total memory:%dMB   free:%d KB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfonts8_asc(buf_back, binfo->scrnx, 0, 16 * 2, COL8_FFFFFF, tempstr);
 	sheet_refresh(sht_back, 0, 0, binfo->scrnx, 48);
+
 	for (;;)
 	{
-		count++;
-		sprintf(tempstr, "%10d", count);
+		sprintf(tempstr, "%10d", timerctl.count);
 		boxfill8(buf_win, 160, COL8_C6C6C6, 40, 28, 119, 43);
 		putfonts8_asc(buf_win, 160, 40, 28, COL8_000000, tempstr);
 
