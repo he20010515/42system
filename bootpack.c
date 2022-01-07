@@ -63,6 +63,7 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title)
 
 void HariMain(void)
 {
+	// TODO 定时器debug
 	struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
 	char tempstr[64];
 	char keybuf[32], mousebuf[128];
@@ -79,7 +80,7 @@ void HariMain(void)
 	init_keyboard();
 	enable_mouse();
 
-	io_out8(PIC0_IMR, 0xf9); //开放PIC1和键盘中断
+	io_out8(PIC0_IMR, 0xf8); //开放PIC1和键盘中断
 	io_out8(PIC1_IMR, 0xef); //开放鼠标中断
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
 	unsigned int memtotal = memtest(0x00400000, 0xbfffffff);
