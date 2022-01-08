@@ -67,30 +67,30 @@ void HariMain(void)
 	char tempstr[64];
 	char keybuf[32], mousebuf[128], timerbuf[8];
 	struct MOUSE_DEC mdec;
+	struct FIFO8 timerfifo;
 	int i;
 	int mx = 0, my = 0;
+	struct SHTCTL *shtctl;
+	struct SHEET *sht_back, *sht_mouse, *sht_win;
+	unsigned char *buf_back, buf_mouse[16 * 16], *buf_win;
 	init_gdtidt();
 	init_pic();
-	io_sti(); //IDT/PIC初始化已经完成,开放CPU中断
-	struct FIFO8 timerfifo;
-	fifo8_init(&timerfifo, 8, timerbuf);
-	settimer(100, &timerfifo, 1);
 	fifo8_init(&keyfifo, 32, keybuf);
 	fifo8_init(&mousefifo, 128, mousebuf);
 	init_pit();
-	init_keyboard();
-	enable_mouse();
-
 	io_out8(PIC0_IMR, 0xf8); //开放PIC1和键盘中断
 	io_out8(PIC1_IMR, 0xef); //开放鼠标中断
+	io_sti(); //IDT/PIC初始化已经完成,开放CPU中断
+	fifo8_init(&timerfifo, 8, timerbuf);
+	settimer(1000, &timerfifo, 1);
+
+	init_keyboard();
+	enable_mouse();
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
 	unsigned int memtotal = memtest(0x00400000, 0xbfffffff);
 	memman_init(memman);
 	memman_free(memman, 0x00001000, 0x0009e000);
 	memman_free(memman, 0x00400000, memtotal - 0x00400000);
-	struct SHTCTL *shtctl;
-	struct SHEET *sht_back, *sht_mouse, *sht_win;
-	unsigned char *buf_back, buf_mouse[16 * 16], *buf_win;
 
 	init_palette();
 
@@ -108,9 +108,11 @@ void HariMain(void)
 
 	make_window8(buf_win, 160, 68, "counter");
 
-	sheet_slide(sht_win, 80, 72);
 	sheet_slide(sht_back, 0, 0);
+	mx = (binfo->scrnx - 16) / 2; /* 将鼠标移动到画面中央 */
+	my = (binfo->scrny - 28 - 16) / 2;
 	sheet_slide(sht_mouse, mx, my);
+	sheet_slide(sht_win, 80, 72);
 	sheet_updown(sht_back, 0);
 	sheet_updown(sht_win, 1);
 	sheet_updown(sht_mouse, 2);
