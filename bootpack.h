@@ -180,13 +180,25 @@ void sheet_free(struct SHEET *sht);
 void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0, int h1);
 
 //timer.c
-struct TIMERCTL
+#define TIMER_FLAGS_ALLOC 1 //已配置状态
+#define TIMER_FLAGS_USING 2 //运行中
+struct TIMER
 {
-    unsigned int count;
-    unsigned int timeout;
+    unsigned int timeout, flags;
     struct FIFO8 *fifo;
     unsigned char data;
 };
+#define MAX_TIMER 500
+
+struct TIMERCTL
+{
+    unsigned int count, next, using; // 计数,下一个时刻,当前有几个定时器处于活动中
+    struct TIMER timers0[MAX_TIMER];
+    struct TIMER *timers[MAX_TIMER];
+};
 void init_pit(void);
 void inthandler20(int *esp);
-void settimer(unsigned int timeout, struct FIFO8 *fifo, unsigned char data);
+struct TIMER *timer_alloc(void);
+void timer_free(struct TIMER *timer);
+void timer_init(struct TIMER *timer, struct FIFO8 *fifo, unsigned char data);
+void timer_settime(struct TIMER *timer, unsigned int timeout);
