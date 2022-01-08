@@ -63,17 +63,18 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title)
 
 void HariMain(void)
 {
-	// TODO 定时器debug
 	struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
 	char tempstr[64];
-	char keybuf[32], mousebuf[128];
+	char keybuf[32], mousebuf[128], timerbuf[8];
 	struct MOUSE_DEC mdec;
 	int i;
 	int mx = 0, my = 0;
 	init_gdtidt();
 	init_pic();
 	io_sti(); //IDT/PIC初始化已经完成,开放CPU中断
-
+	struct FIFO8 timerfifo;
+	fifo8_init(&timerfifo, 8, timerbuf);
+	settimer(100, &timerfifo, 1);
 	fifo8_init(&keyfifo, 32, keybuf);
 	fifo8_init(&mousefifo, 128, mousebuf);
 	init_pit();
@@ -127,7 +128,7 @@ void HariMain(void)
 		sheet_refresh(sht_win, 40, 28, 120, 44);
 
 		io_cli();
-		if ((fifo8_status(&keyfifo) + fifo8_status(&mousefifo)) == 0)
+		if ((fifo8_status(&keyfifo) + fifo8_status(&mousefifo)) + fifo8_status(&timerfifo) == 0)
 		{
 			io_sti();
 		}
@@ -189,6 +190,13 @@ void HariMain(void)
 					sheet_refresh(sht_back, 0, 0, 80, 16);
 					sheet_slide(sht_mouse, mx, my);
 				}
+			}
+			else if (fifo8_status(&timerfifo) != 0)
+			{
+				i = fifo8_get(&timerfifo);
+				io_sti();
+				putfonts8_asc(buf_back, binfo->scrnx, 0, 64, COL8_FFFFFF, "10[sec]");
+				sheet_refresh(sht_back, 0, 64, 56, 80);
 			}
 		}
 	}

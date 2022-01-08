@@ -17,7 +17,7 @@ void inthandler20(int *esp)
 {
     io_out8(PIC0_OCW2, 0x60);
     timerctl.count++;
-    if (timerctl.timeout >= 0)
+    if (timerctl.timeout > 0)
     {
         timerctl.timeout--;
         if (timerctl.timeout == 0)
@@ -28,7 +28,7 @@ void inthandler20(int *esp)
     return;
 }
 
-void setttimer(unsigned int timeout, struct FIFO8 *fifo, unsigned char data)
+void settimer(unsigned int timeout, struct FIFO8 *fifo, unsigned char data)
 {
     int eflags;
     eflags = io_load_eflags();
