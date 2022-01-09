@@ -1,4 +1,4 @@
-#include"bootpack.h"
+#include "bootpack.h"
 
 struct FIFO8 mousefifo;
 
@@ -56,10 +56,10 @@ void enable_mouse(void)
 
 void inthandler2c(int *esp)
 {
-    unsigned char data;
-    io_out8(PIC1_OCW2, 0x64);
-    io_out8(PIC0_OCW2, 0x62); //中断受理完毕
-    data = io_in8(PORT_KEYDAT);
-    fifo8_put(&mousefifo, data);
-    return;
+	unsigned char data;
+	io_out8(PIC1_OCW2, 0x64);
+	io_out8(PIC0_OCW2, 0x62); //中断受理完毕
+	data = io_in8(PORT_KEYDAT);
+	fifo8_put(&mousefifo, data);
+	return;
 }
