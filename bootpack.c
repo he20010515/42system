@@ -1,65 +1,10 @@
 //操作系统内核的入口文件
 #include "bootpack.h"
 #include "stdio.h"
+#include <string.h>
 extern struct FIFO8 keyfifo;
 extern struct FIFO8 mousefifo;
 extern struct TIMERCTL timerctl;
-void make_window8(unsigned char *buf, int xsize, int ysize, char *title)
-{
-	static char closebtn[14][16] = {
-		"OOOOOOOOOOOOOOO@",
-		"OQQQQQQQQQQQQQ$@",
-		"OQQQQQQQQQQQQQ$@",
-		"OQQQ@@QQQQ@@QQ$@",
-		"OQQQQ@@QQ@@QQQ$@",
-		"OQQQQQ@@@@QQQQ$@",
-		"OQQQQQQ@@QQQQQ$@",
-		"OQQQQQ@@@@QQQQ$@",
-		"OQQQQ@@QQ@@QQQ$@",
-		"OQQQ@@QQQQ@@QQ$@",
-		"OQQQQQQQQQQQQQ$@",
-		"OQQQQQQQQQQQQQ$@",
-		"O$$$$$$$$$$$$$$@",
-		"@@@@@@@@@@@@@@@@"};
-	int x, y;
-	char c;
-	boxfill8(buf, xsize, COL8_C6C6C6, 0, 0, xsize - 1, 0);
-	boxfill8(buf, xsize, COL8_FFFFFF, 1, 1, xsize - 2, 1);
-	boxfill8(buf, xsize, COL8_C6C6C6, 0, 0, 0, ysize - 1);
-	boxfill8(buf, xsize, COL8_FFFFFF, 1, 1, 1, ysize - 2);
-	boxfill8(buf, xsize, COL8_848484, xsize - 2, 1, xsize - 2, ysize - 2);
-	boxfill8(buf, xsize, COL8_000000, xsize - 1, 0, xsize - 1, ysize - 1);
-	boxfill8(buf, xsize, COL8_C6C6C6, 2, 2, xsize - 3, ysize - 3);
-	boxfill8(buf, xsize, COL8_000084, 3, 3, xsize - 4, 20);
-	boxfill8(buf, xsize, COL8_848484, 1, ysize - 2, xsize - 2, ysize - 2);
-	boxfill8(buf, xsize, COL8_000000, 0, ysize - 1, xsize - 1, ysize - 1);
-	putfonts8_asc(buf, xsize, 24, 4, COL8_FFFFFF, title);
-	for (y = 0; y < 14; y++)
-	{
-		for (x = 0; x < 16; x++)
-		{
-			c = closebtn[y][x];
-			if (c == '@')
-			{
-				c = COL8_000000;
-			}
-			else if (c == '$')
-			{
-				c = COL8_848484;
-			}
-			else if (c == 'Q')
-			{
-				c = COL8_C6C6C6;
-			}
-			else
-			{
-				c = COL8_FFFFFF;
-			}
-			buf[(5 + y) * xsize + (xsize - 21 + x)] = c;
-		}
-	}
-	return;
-}
 
 void HariMain(void)
 {
@@ -132,8 +77,7 @@ void HariMain(void)
 	sheet_updown(sht_mouse, 2);
 
 	sprintf(tempstr, "total memory:%dMB   free:%d KB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
-	putfonts8_asc(buf_back, binfo->scrnx, 0, 16 * 2, COL8_FFFFFF, tempstr);
-	sheet_refresh(sht_back, 0, 0, binfo->scrnx, 48);
+	putfonts8_asc_sht(sht_back, 0, 16 * 2, COL8_FFFFFF, COL8_008484, tempstr);
 	int dosth;
 	for (;;)
 	{
@@ -157,9 +101,7 @@ void HariMain(void)
 				i = fifo8_get(&keyfifo);
 				io_sti();
 				sprintf(tempstr, "%02X", i);
-				boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 16, 15, 31);
-				putfonts8_asc(buf_back, binfo->scrnx, 0, 16, COL8_FFFFFF, tempstr);
-				sheet_refresh(sht_back, 0, 0, binfo->scrnx, 48);
+				putfonts8_asc_sht(sht_back, 0, 16, COL8_FFFFFF, COL8_008484, tempstr);
 			}
 			else if (fifo8_status(&mousefifo) != 0)
 			{
@@ -180,9 +122,7 @@ void HariMain(void)
 					{
 						tempstr[2] = 'C';
 					}
-					boxfill8(buf_back, binfo->scrnx, COL8_008484, 32, 16, 32 + 15 * 8 - 1, 31);
-					putfonts8_asc(buf_back, binfo->scrnx, 32, 16, COL8_FFFFFF, tempstr);
-					sheet_refresh(sht_back, 32, 16, 32 + 15 * 8, 32);
+					putfonts8_asc_sht(sht_back, 32, 16, COL8_FFFFFF, COL8_008484, tempstr);
 					mx += mdec.x;
 					my += mdec.y;
 					if (mx < 0)
@@ -202,9 +142,7 @@ void HariMain(void)
 						my = binfo->scrny - 1;
 					}
 					sprintf(tempstr, "(%3d,%3d)", mx, my);
-					boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 0, 79, 15);
-					putfonts8_asc(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, tempstr);
-					sheet_refresh(sht_back, 0, 0, 80, 16);
+					putfonts8_asc_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, tempstr);
 					sheet_slide(sht_mouse, mx, my);
 				}
 			}
@@ -212,8 +150,7 @@ void HariMain(void)
 			{
 				i = fifo8_get(&timerfifo1);
 				io_sti();
-				putfonts8_asc(buf_back, binfo->scrnx, 0, 64, COL8_FFFFFF, "10[sec]");
-				sheet_refresh(sht_back, 0, 64, 56, 80);
+				putfonts8_asc_sht(sht_back, 0, 64, COL8_FFFFFF, COL8_848484, "10[set]");
 			}
 			else if (fifo8_status(&timerfifo2) != 0)
 			{
