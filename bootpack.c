@@ -75,13 +75,10 @@ void HariMain(void)
 	sprintf(tempstr, "total memory:%dMB   free:%d KB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfonts8_asc_sht(sht_back, 0, 16 * 2, COL8_FFFFFF, COL8_008484, tempstr);
 	int dosth;
+	unsigned int count = 0;
 	for (;;)
 	{
-		sprintf(tempstr, "%10d", timerctl.count);
-		boxfill8(buf_win, 160, COL8_C6C6C6, 40, 28, 119, 43);
-		putfonts8_asc(buf_win, 160, 40, 28, COL8_000000, tempstr);
-
-		sheet_refresh(sht_win, 40, 28, 120, 44);
+		count++;
 
 		io_cli();
 		dosth = fifo8_status(&keyfifo) + fifo8_status(&mousefifo) + fifo8_status(&timerfifo);
@@ -145,21 +142,24 @@ void HariMain(void)
 			else if (fifo8_status(&timerfifo) != 0)
 			{
 				i = fifo8_get(&timerfifo);
+				io_sti();
 				switch (i)
 				{
 				case 10:
-					io_sti();
 					putfonts8_asc_sht(sht_back, 0, 64, COL8_FFFFFF, COL8_008484, "10[sec]");
+					sprintf(tempstr, "%010d", count);
+					putfonts8_asc_sht(sht_win, 40, 28, COL8_000000, COL8_C6C6C6, tempstr);
 					break;
 				case 3:
-					io_sti();
 					putfonts8_asc_sht(sht_back, 0, 80, COL8_FFFFFF, COL8_008484, "3[sec]");
+					count = 0;
+					break;
 				case 1:
 				case 0:
 					if (i != 0)
 					{
 						timer_init(timer3, &timerfifo, 0);
-						boxfill8(buf_back, binfo->scrnx, COL8_FFFFFF, 8, 96, 15, 111);
+						boxfill8(buf_back, binfo->scrnx, COL8_FFFFFF, 8, 96, 15, 111); // 光标闪烁
 					}
 					else
 					{
