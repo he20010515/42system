@@ -1,4 +1,4 @@
-#include"define.h"
+#include "define.h"
 struct BOOTINFO
 {
     char cyls, leds, vmode, reserve;
@@ -20,6 +20,11 @@ struct GATE_DESCRIPTOR
 struct FIFO8
 {
     unsigned char *buf;
+    int p, q, size, free, flags;
+};
+struct FIFO32
+{
+    int *buf;
     int p, q, size, free, flags;
 };
 struct MOUSE_DEC
@@ -52,7 +57,7 @@ struct SHTCTL
 struct TIMER
 {
     unsigned int timeout, flags;
-    struct FIFO8 *fifo;
+    struct FIFO32 *fifo;
     unsigned char data;
 };
 struct TIMERCTL

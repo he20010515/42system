@@ -1,3 +1,6 @@
+#define AND &&
+#define OR ||
+
 #define ADR_BOOTINFO 0x0ff0
 #define ADR_IDT 0x0026f800
 #define LIMIT_IDT 0x000007ff

@@ -2,32 +2,31 @@
 #include "bootpack.h"
 #include "stdio.h"
 #include <string.h>
-extern struct FIFO8 keyfifo;
-extern struct FIFO8 mousefifo;
 extern struct TIMERCTL timerctl;
 
 void HariMain(void)
 {
 	struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
 	char tempstr[64];
-	char keybuf[32], mousebuf[128];
 	struct MOUSE_DEC mdec;
 	int i;
 	int mx = 0, my = 0;
 	struct SHTCTL *shtctl;
 	struct SHEET *sht_back, *sht_mouse, *sht_win;
 	unsigned char *buf_back, buf_mouse[16 * 16], *buf_win;
+	struct FIFO32 fifo;
+	int fifobuf[128];
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+	fifo32_init(&fifo, 128, fifobuf);
 	init_gdtidt();
 	init_pic();
-	fifo8_init(&keyfifo, 32, keybuf);
-	fifo8_init(&mousefifo, 128, mousebuf);
 	init_pit();
+
+	init_keyboard(&fifo, 256);
+	enable_mouse(&fifo, 512, &mdec);
 	io_out8(PIC0_IMR, 0xf8); //开放PIC1和键盘中断
 	io_out8(PIC1_IMR, 0xef); //开放鼠标中断
 	io_sti();				 //IDT/PIC初始化已经完成,开放CPU中断
-	init_keyboard();
-	enable_mouse();
-	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
 	unsigned int memtotal = memtest(0x00400000, 0xbfffffff);
 	memman_init(memman);
 	memman_free(memman, 0x00001000, 0x0009e000);
@@ -35,17 +34,15 @@ void HariMain(void)
 	init_palette();
 	//timer设定开始
 	char timerbuf[32];
-	struct FIFO8 timerfifo;
 	struct TIMER *timer1, *timer2, *timer3;
-	fifo8_init(&timerfifo, 32, timerbuf);
 	timer1 = timer_alloc();
-	timer_init(timer1, &timerfifo, 10);
+	timer_init(timer1, &fifo, 10);
 	timer_settime(timer1, 1000);
 	timer2 = timer_alloc();
-	timer_init(timer2, &timerfifo, 3);
+	timer_init(timer2, &fifo, 3);
 	timer_settime(timer2, 300);
 	timer3 = timer_alloc();
-	timer_init(timer3, &timerfifo, 1);
+	timer_init(timer3, &fifo, 1);
 	timer_settime(timer3, 50);
 	//定时器设定结束
 
@@ -74,32 +71,30 @@ void HariMain(void)
 
 	sprintf(tempstr, "total memory:%dMB   free:%d KB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfonts8_asc_sht(sht_back, 0, 16 * 2, COL8_FFFFFF, COL8_008484, tempstr);
-	int dosth;
 	unsigned int count = 0;
 	for (;;)
 	{
 		count++;
-
 		io_cli();
-		dosth = fifo8_status(&keyfifo) + fifo8_status(&mousefifo) + fifo8_status(&timerfifo);
-		if (dosth == 0)
+		if (fifo32_status(&fifo) == 0)
 		{
 			io_sti();
 		}
 		else
 		{
-			if (fifo8_status(&keyfifo) != 0)
+			i = fifo32_get(&fifo);
+			sprintf(tempstr, "fifo:%03d", i);
+			putfonts8_asc_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_848484, tempstr);
+			io_sti();
+			if (256 <= i AND i <= 511) // 键盘数据
 			{
-
-				i = fifo8_get(&keyfifo);
-				io_sti();
+				i -= 256;
 				sprintf(tempstr, "%02X", i);
 				putfonts8_asc_sht(sht_back, 0, 16, COL8_FFFFFF, COL8_008484, tempstr);
 			}
-			else if (fifo8_status(&mousefifo) != 0)
+			else if (512 <= i AND i <= 767) //鼠标数据
 			{
-				i = fifo8_get(&mousefifo);
-				io_sti();
+				i -= 512;
 				if (mouse_decode(&mdec, i) != 0)
 				{
 					sprintf(tempstr, "[lcr %4d %4d]", mdec.x, mdec.y);
@@ -139,10 +134,8 @@ void HariMain(void)
 					sheet_slide(sht_mouse, mx, my);
 				}
 			}
-			else if (fifo8_status(&timerfifo) != 0)
+			else if (i == 10 OR i == 1 OR i == 3 OR i == 0)
 			{
-				i = fifo8_get(&timerfifo);
-				io_sti();
 				switch (i)
 				{
 				case 10:
@@ -158,12 +151,12 @@ void HariMain(void)
 				case 0:
 					if (i != 0)
 					{
-						timer_init(timer3, &timerfifo, 0);
+						timer_init(timer3, &fifo, 0);
 						boxfill8(buf_back, binfo->scrnx, COL8_FFFFFF, 8, 96, 15, 111); // 光标闪烁
 					}
 					else
 					{
-						timer_init(timer3, &timerfifo, 1);
+						timer_init(timer3, &fifo, 1);
 						boxfill8(buf_back, binfo->scrnx, COL8_008484, 8, 96, 15, 111);
 					}
 					timer_settime(timer3, 50);
