@@ -3,6 +3,8 @@
 #include "stdio.h"
 #include <string.h>
 extern struct TIMERCTL timerctl;
+extern int keydata0;
+extern int mousedata0;
 
 void HariMain(void)
 {
@@ -83,8 +85,6 @@ void HariMain(void)
 		else
 		{
 			i = fifo32_get(&fifo);
-			sprintf(tempstr, "fifo:%03d", i);
-			putfonts8_asc_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_848484, tempstr);
 			io_sti();
 			if (256 <= i AND i <= 511) // 键盘数据
 			{
