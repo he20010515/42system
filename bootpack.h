@@ -89,3 +89,4 @@ void init_mouse_cursor8(char *mouse, char bc);
 void putblock8_8(char *vram, int vxsize, int pxsize, int pysize, int px0, int py0, char *buf, int bxsize);
 void putfonts8_asc_sht(struct SHEET *sht, int x, int y, int c, int b, char *s);
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title);
+void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
