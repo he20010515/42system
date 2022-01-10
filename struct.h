@@ -56,13 +56,14 @@ struct SHTCTL
 };
 struct TIMER
 {
+    struct TIMER *next_timer; // 下一个超时的计时器地址
     unsigned int timeout, flags;
     struct FIFO32 *fifo;
     unsigned char data;
 };
 struct TIMERCTL
 {
-    unsigned int count, next, using; // 计数,下一个时刻,当前有几个定时器处于活动中
+    unsigned int count, next_time, using; // 计数,下一个时刻,当前有几个定时器处于活动中
     struct TIMER timers0[MAX_TIMER];
-    struct TIMER *timers[MAX_TIMER];
+    struct TIMER *t0;
 };
