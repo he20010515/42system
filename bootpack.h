@@ -18,12 +18,15 @@ void asm_inthandler20(void);
 unsigned int memtest_sub(unsigned int start, unsigned int end);
 int load_cr0(void);
 void store_cr0(int cr0);
+void load_tr(int tr);
+void taskswitch4(void);
+void taskswitch3(void);
+
 //dsctbl.c
 
 void init_gdtidt(void);
 void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, unsigned int limit, int base, int ar);
 void set_gatedesc(struct GATE_DESCRIPTOR *gd, int offset, int selector, int ar);
-
 /* int.c */
 void init_pic(void);
 void inthandler21(int *esp);

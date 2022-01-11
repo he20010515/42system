@@ -6,6 +6,17 @@ extern struct TIMERCTL timerctl;
 extern int keydata0;
 extern int mousedata0;
 
+void task_b_main(void);
+struct TSS32
+{
+	int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;		 // 任务设置相关信息
+	int eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi; // 32位寄存器 eip 是用来记录下一条需要执行的指令位于内存中的那个地址的寄存器 每执行一条指令,EPI中的值就回自动+1;
+	int es, cs, ss, ds, fs, gs;								 // 16位寄存器
+	int ldtr, iomap;										 // 任务设置相关
+};
+
+#define AR_TSS32 0x0089
+
 void HariMain(void)
 {
 	struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
@@ -34,8 +45,33 @@ void HariMain(void)
 	memman_free(memman, 0x00001000, 0x0009e000);
 	memman_free(memman, 0x00400000, memtotal - 0x00400000);
 	init_palette();
+	//任务切换
+	struct TSS32 tss_a, tss_b;
+	tss_a.ldtr = 0, tss_a.iomap = 0x40000000;
+	tss_b.ldtr = 0, tss_b.iomap = 0x40000000;
+	struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)ADR_GDT;
+	set_segmdesc(gdt + 3, 103, (int)&tss_a, AR_TSS32);
+	set_segmdesc(gdt + 4, 103, (int)&tss_b, AR_TSS32);
+	load_tr(3 * 8);
+
+	int task_b_esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024; //为进程B准备的栈地址,
+	tss_b.eip = (int)&task_b_main;
+	tss_b.eflags = 0x00000202;
+	tss_b.eax = 0;
+	tss_b.ecx = 0;
+	tss_b.edx = 0;
+	tss_b.ebx = 0;
+	tss_b.esp = task_b_esp;
+	tss_b.ebp = 0;
+	tss_b.esi = 0;
+	tss_b.edi = 0;
+	tss_b.es = 1 * 8;
+	tss_b.cs = 2 * 8;
+	tss_b.ss = 1 * 8;
+	tss_b.ds = 1 * 8;
+	tss_b.fs = 1 * 8;
+	tss_b.gs = 1 * 8;
 	//timer设定开始
-	char timerbuf[32];
 	struct TIMER *timer1, *timer2, *timer3;
 	timer1 = timer_alloc();
 	timer_init(timer1, &fifo, 10);
@@ -47,7 +83,6 @@ void HariMain(void)
 	timer_init(timer3, &fifo, 1);
 	timer_settime(timer3, 50);
 	//定时器设定结束
-
 	shtctl = shtctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
 	sht_back = sheet_alloc(shtctl);
 	sht_mouse = sheet_alloc(shtctl);
@@ -71,7 +106,6 @@ void HariMain(void)
 	sheet_updown(sht_back, 0);
 	sheet_updown(sht_win, 1);
 	sheet_updown(sht_mouse, 2);
-
 	sprintf(tempstr, "total memory:%dMB   free:%d KB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfonts8_asc_sht(sht_back, 0, 16 * 2, COL8_FFFFFF, COL8_008484, tempstr);
 	int cursor_x = 8, cursor_c = COL8_FFFFFF;
@@ -172,11 +206,7 @@ void HariMain(void)
 				{
 				case 10:
 					putfonts8_asc_sht(sht_back, 0, 64, COL8_FFFFFF, COL8_008484, "10[sec]");
-					if (i)
-					{
-						/* code */
-					}
-
+					taskswitch4(); // 切换到taskb;
 					break;
 				case 3:
 					putfonts8_asc_sht(sht_back, 0, 80, COL8_FFFFFF, COL8_008484, "3[sec]");
@@ -205,4 +235,31 @@ void HariMain(void)
 	}
 }
 
+void task_b_main(void)
+{
+	struct FIFO32 fifo;
+	struct TIMER *timer;
+	int i, fifobuf[128];
+	fifo32_init(&fifo, 128, fifobuf);
+	timer = timer_alloc();
+	timer_init(timer, &fifo, 1);
+	timer_settime(timer, 500);
 
+	for (;;)
+	{
+		io_cli();
+		if (fifo32_status(&fifo) == 0)
+		{
+			io_stihlt();
+		}
+		else
+		{
+			i = fifo32_get(&fifo);
+			io_sti();
+			if (i == 1)
+			{
+				taskswitch3();
+			}
+		}
+	}
+}
