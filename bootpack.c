@@ -16,7 +16,7 @@ struct TSS32
 };
 
 #define AR_TSS32 0x0089
-
+struct SHEET *SHEET_BACK;
 void HariMain(void)
 {
 	struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
@@ -71,6 +71,12 @@ void HariMain(void)
 	tss_b.ds = 1 * 8;
 	tss_b.fs = 1 * 8;
 	tss_b.gs = 1 * 8;
+	//任务切换计时器
+	struct TIMER *timer_ts;
+	timer_ts = timer_alloc();
+	timer_init(timer_ts, &fifo, 2);
+	timer_settime(timer_ts, 2);
+
 	//timer设定开始
 	struct TIMER *timer1, *timer2, *timer3;
 	timer1 = timer_alloc();
@@ -106,6 +112,7 @@ void HariMain(void)
 	sheet_updown(sht_back, 0);
 	sheet_updown(sht_win, 1);
 	sheet_updown(sht_mouse, 2);
+	SHEET_BACK = sht_back;
 	sprintf(tempstr, "total memory:%dMB   free:%d KB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfonts8_asc_sht(sht_back, 0, 16 * 2, COL8_FFFFFF, COL8_008484, tempstr);
 	int cursor_x = 8, cursor_c = COL8_FFFFFF;
@@ -200,16 +207,19 @@ void HariMain(void)
 					}
 				}
 			}
-			else if (i == 10 OR i == 1 OR i == 3 OR i == 0)
+			else if (i == 2 OR i == 10 OR i == 1 OR i == 3 OR i == 0)
 			{
 				switch (i)
 				{
 				case 10:
 					putfonts8_asc_sht(sht_back, 0, 64, COL8_FFFFFF, COL8_008484, "10[sec]");
-					taskswitch4(); // 切换到taskb;
 					break;
 				case 3:
 					putfonts8_asc_sht(sht_back, 0, 80, COL8_FFFFFF, COL8_008484, "3[sec]");
+					break;
+				case 2:
+					farjmp(0, 4 * 8); // 切换到taskb;
+					timer_settime(timer_ts, 2);
 					break;
 				case 1:
 				case 0:
@@ -238,19 +248,24 @@ void HariMain(void)
 void task_b_main(void)
 {
 	struct FIFO32 fifo;
-	struct TIMER *timer;
-	int i, fifobuf[128];
+	struct TIMER *timer_ts;
+	int i, fifobuf[128], count = 0;
+	char tempstr[11];
+	struct SHEET *sht_back = SHEET_BACK;
 	fifo32_init(&fifo, 128, fifobuf);
-	timer = timer_alloc();
-	timer_init(timer, &fifo, 1);
-	timer_settime(timer, 500);
+	timer_ts = timer_alloc();
+	timer_init(timer_ts, &fifo, 1);
+	timer_settime(timer_ts, 2);
 
 	for (;;)
 	{
+		count++;
+		sprintf(tempstr, "%10d", count);
+		putfonts8_asc_sht(sht_back, 0, 144, COL8_FFFFFF, COL8_008484, tempstr);
 		io_cli();
 		if (fifo32_status(&fifo) == 0)
 		{
-			io_stihlt();
+			io_sti();
 		}
 		else
 		{
@@ -258,7 +273,8 @@ void task_b_main(void)
 			io_sti();
 			if (i == 1)
 			{
-				taskswitch3();
+				farjmp(0, 3 * 8);
+				timer_settime(timer_ts, 2);
 			}
 		}
 	}
