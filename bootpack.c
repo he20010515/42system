@@ -2,11 +2,12 @@
 #include "bootpack.h"
 #include "stdio.h"
 #include <string.h>
+
+void task_b_main(struct SHEET *sht_back);
 extern struct TIMERCTL timerctl;
 extern int keydata0;
 extern int mousedata0;
 
-void task_b_main(void);
 struct TSS32
 {
 	int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;		 // 任务设置相关信息
@@ -30,52 +31,29 @@ void HariMain(void)
 	struct FIFO32 fifo;
 	int fifobuf[128];
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+	static char keytable[0x54] = {
+		0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0, 0,
+		'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[', 0, 0, 'A', 'S',
+		'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', ':', 0, 0, ']', 'Z', 'X', 'C', 'V',
+		'B', 'N', 'M', ',', '.', '/', 0, '*', 0, ' ', 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1',
+		'2', '3', '0', '.'};
+
 	fifo32_init(&fifo, 128, fifobuf);
 	init_gdtidt();
 	init_pic();
+	io_sti(); //IDT/PIC初始化已经完成,开放CPU中断
 	init_pit();
 
 	init_keyboard(&fifo, 256);
 	enable_mouse(&fifo, 512, &mdec);
 	io_out8(PIC0_IMR, 0xf8); //开放PIC1和键盘中断
 	io_out8(PIC1_IMR, 0xef); //开放鼠标中断
-	io_sti();				 //IDT/PIC初始化已经完成,开放CPU中断
 	unsigned int memtotal = memtest(0x00400000, 0xbfffffff);
 	memman_init(memman);
 	memman_free(memman, 0x00001000, 0x0009e000);
 	memman_free(memman, 0x00400000, memtotal - 0x00400000);
 	init_palette();
-	//任务切换
-	struct TSS32 tss_a, tss_b;
-	tss_a.ldtr = 0, tss_a.iomap = 0x40000000;
-	tss_b.ldtr = 0, tss_b.iomap = 0x40000000;
-	struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)ADR_GDT;
-	set_segmdesc(gdt + 3, 103, (int)&tss_a, AR_TSS32);
-	set_segmdesc(gdt + 4, 103, (int)&tss_b, AR_TSS32);
-	load_tr(3 * 8);
-
-	int task_b_esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024; //为进程B准备的栈地址,
-	tss_b.eip = (int)&task_b_main;
-	tss_b.eflags = 0x00000202;
-	tss_b.eax = 0;
-	tss_b.ecx = 0;
-	tss_b.edx = 0;
-	tss_b.ebx = 0;
-	tss_b.esp = task_b_esp;
-	tss_b.ebp = 0;
-	tss_b.esi = 0;
-	tss_b.edi = 0;
-	tss_b.es = 1 * 8;
-	tss_b.cs = 2 * 8;
-	tss_b.ss = 1 * 8;
-	tss_b.ds = 1 * 8;
-	tss_b.fs = 1 * 8;
-	tss_b.gs = 1 * 8;
-	//任务切换计时器
-	struct TIMER *timer_ts;
-	timer_ts = timer_alloc();
-	timer_init(timer_ts, &fifo, 2);
-	timer_settime(timer_ts, 2);
 
 	//timer设定开始
 	struct TIMER *timer1, *timer2, *timer3;
@@ -116,14 +94,36 @@ void HariMain(void)
 	sprintf(tempstr, "total memory:%dMB   free:%d KB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfonts8_asc_sht(sht_back, 0, 16 * 2, COL8_FFFFFF, COL8_008484, tempstr);
 	int cursor_x = 8, cursor_c = COL8_FFFFFF;
+	//任务切换
+	struct TSS32 tss_a, tss_b;
+	tss_a.ldtr = 0, tss_a.iomap = 0x40000000;
+	tss_b.ldtr = 0, tss_b.iomap = 0x40000000;
+	struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)ADR_GDT;
+	set_segmdesc(gdt + 3, 103, (int)&tss_a, AR_TSS32);
+	set_segmdesc(gdt + 4, 103, (int)&tss_b, AR_TSS32);
+	load_tr(3 * 8);
 
-	static char keytable[0x54] = {
-		0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0, 0,
-		'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[', 0, 0, 'A', 'S',
-		'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', ':', 0, 0, ']', 'Z', 'X', 'C', 'V',
-		'B', 'N', 'M', ',', '.', '/', 0, '*', 0, ' ', 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1',
-		'2', '3', '0', '.'};
+	int task_b_esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024; //为进程B准备的栈地址,
+	tss_b.eip = (int)&task_b_main;
+	tss_b.eflags = 0x00000202;
+	tss_b.eax = 0;
+	tss_b.ecx = 0;
+	tss_b.edx = 0;
+	tss_b.ebx = 0;
+	tss_b.esp = task_b_esp;
+	tss_b.ebp = 0;
+	tss_b.esi = 0;
+	tss_b.edi = 0;
+	tss_b.es = 1 * 8;
+	tss_b.cs = 2 * 8;
+	tss_b.ss = 1 * 8;
+	tss_b.ds = 1 * 8;
+	tss_b.fs = 1 * 8;
+	tss_b.gs = 1 * 8;
+	//多任务切换初始化
+	*((int *)(task_b_esp + 4)) = (int)sht_back;
+	mt_init();
+
 	for (;;)
 	{
 		io_cli();
@@ -217,10 +217,6 @@ void HariMain(void)
 				case 3:
 					putfonts8_asc_sht(sht_back, 0, 80, COL8_FFFFFF, COL8_008484, "3[sec]");
 					break;
-				case 2:
-					farjmp(0, 4 * 8); // 切换到taskb;
-					timer_settime(timer_ts, 2);
-					break;
 				case 1:
 				case 0:
 					if (i != 0)
@@ -245,23 +241,25 @@ void HariMain(void)
 	}
 }
 
-void task_b_main(void)
+void task_b_main(struct SHEET *sht_back)
 {
 	struct FIFO32 fifo;
-	struct TIMER *timer_ts;
-	int i, fifobuf[128], count = 0;
-	char tempstr[11];
-	struct SHEET *sht_back = SHEET_BACK;
+	struct TIMER *timer_put, *timer_1s;
+	int i, fifobuf[128], count = 0, count0 = 0;
+	char s[12];
+	sht_back = SHEET_BACK;
+
 	fifo32_init(&fifo, 128, fifobuf);
-	timer_ts = timer_alloc();
-	timer_init(timer_ts, &fifo, 1);
-	timer_settime(timer_ts, 2);
+	timer_put = timer_alloc();
+	timer_init(timer_put, &fifo, 1);
+	timer_settime(timer_put, 1);
+	timer_1s = timer_alloc();
+	timer_init(timer_1s, &fifo, 100);
+	timer_settime(timer_1s, 100);
 
 	for (;;)
 	{
 		count++;
-		sprintf(tempstr, "%10d", count);
-		putfonts8_asc_sht(sht_back, 0, 144, COL8_FFFFFF, COL8_008484, tempstr);
 		io_cli();
 		if (fifo32_status(&fifo) == 0)
 		{
@@ -273,8 +271,16 @@ void task_b_main(void)
 			io_sti();
 			if (i == 1)
 			{
-				farjmp(0, 3 * 8);
-				timer_settime(timer_ts, 2);
+				sprintf(s, "%11d", count);
+				putfonts8_asc_sht(sht_back, 0, 144, COL8_FFFFFF, COL8_008484, s);
+				timer_settime(timer_put, 1);
+			}
+			else if (i == 100)
+			{
+				sprintf(s, "%11d", count - count0);
+				putfonts8_asc_sht(sht_back, 0, 128, COL8_FFFFFF, COL8_008484, s);
+				count0 = count;
+				timer_settime(timer_1s, 100);
 			}
 		}
 	}

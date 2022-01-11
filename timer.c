@@ -89,10 +89,12 @@ void timer_settime(struct TIMER *timer, unsigned int timeout)
     }
     return;
 }
+extern struct TIMER *mt_timer;
 
 void inthandler20(int *esp)
 {
     struct TIMER *timer;
+    char ts = 0;
     io_out8(PIC0_OCW2, 0x60);
     timerctl.count++;
     if (timerctl.next_time > timerctl.count)
@@ -109,12 +111,25 @@ void inthandler20(int *esp)
         }
         //超时
         timer->flags = TIMER_FLAGS_ALLOC;
-        fifo32_put(timer->fifo, timer->data);
+        if (timer != mt_timer)
+        {
+            fifo32_put(timer->fifo, timer->data);
+        }
+        else
+        {
+            ts = 1; //mt_timer 超时
+        }
+
         timer = timer->next_timer; //下一个定时器的地址赋给timer
     }
     //正好有i个定时器超时了,其余的进行移位
     timerctl.t0 = timer;
     //timerctl.next的设定
     timerctl.next_time = timerctl.t0->timeout;
+    if (ts != 0)
+    {
+        mt_taskswitch();
+    }
+
     return;
 }
