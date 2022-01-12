@@ -67,3 +67,26 @@ struct TIMERCTL
     struct TIMER timers0[MAX_TIMER];
     struct TIMER *t0;
 };
+
+struct TSS32
+{
+    int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;      // 任务设置相关信息
+    int eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi; // 32位寄存器 eip 是用来记录下一条需要执行的指令位于内存中的那个地址的寄存器 每执行一条指令,EPI中的值就回自动+1;
+    int es, cs, ss, ds, fs, gs;                              // 16位寄存器
+    int ldtr, iomap;                                         // 任务设置相关
+};
+
+struct TASK
+{
+    int sel, flags; //sel用来存放GDT的编号;
+    struct TSS32 tss;
+};
+
+#define MAX_TASKS 1000
+struct TASKCTL
+{
+    int running; //正在运行的任务数量
+    int now;     //当前正在运行的是那个任务
+    struct TASK *tasks[MAX_TASKS];
+    struct TASK tasks0[MAX_TASKS];
+};

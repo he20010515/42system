@@ -98,3 +98,7 @@ void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
 //mtask.c
 void mt_init(void);
 void mt_taskswitch(void);
+void task_switch(void);
+void task_run(struct TASK *task);
+struct TASK *task_alloc(void);
+struct TASK *task_init(struct MEMMAN *memman);
