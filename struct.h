@@ -26,6 +26,7 @@ struct FIFO32
 {
     int *buf;
     int p, q, size, free, flags;
+    struct TASK *task;
 };
 struct MOUSE_DEC
 {

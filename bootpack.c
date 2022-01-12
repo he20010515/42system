@@ -30,7 +30,7 @@ void HariMain(void)
 		0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1',
 		'2', '3', '0', '.'};
 
-	fifo32_init(&fifo, 128, fifobuf);
+	fifo32_init(&fifo, 128, fifobuf, 0);
 	init_gdtidt();
 	init_pic();
 	io_sti(); //IDT/PIC初始化已经完成,开放CPU中断
@@ -86,8 +86,9 @@ void HariMain(void)
 	putfonts8_asc_sht(sht_back, 0, 16 * 2, COL8_FFFFFF, COL8_008484, tempstr);
 	int cursor_x = 8, cursor_c = COL8_FFFFFF;
 	//任务切换
-	struct TASK *task_b;
-	task_init(memman);
+	struct TASK *task_b, *task_a;
+	task_a = task_init(memman); // 第一个任务
+	fifo.task = task_a;
 	task_b = task_alloc();
 	task_b->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 8;
 	task_b->tss.eip = (int)&task_b_main;
@@ -104,7 +105,8 @@ void HariMain(void)
 		io_cli();
 		if (fifo32_status(&fifo) == 0)
 		{
-			io_stihlt();
+			task_sleep(task_a);
+			io_sti();
 		}
 		else
 		{
@@ -224,7 +226,7 @@ void task_b_main(struct SHEET *sht_back)
 	char s[12];
 	sht_back = SHEET_BACK;
 
-	fifo32_init(&fifo, 128, fifobuf);
+	fifo32_init(&fifo, 128, fifobuf, 0);
 	timer_put = timer_alloc();
 	timer_init(timer_put, &fifo, 1);
 	timer_settime(timer_put, 1);

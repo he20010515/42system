@@ -78,26 +78,41 @@ void task_switch(void)
     return;
 }
 
-void mt_init(void)
+void task_sleep(struct TASK *task)
 {
-    mt_timer = timer_alloc();
-    //这里没有必要使用timer_init;
-    timer_settime(mt_timer, 2);
-    mt_tr = 3 * 8;
-    return;
-}
-
-void mt_taskswitch(void)
-{
-    if (mt_tr == 3 * 8)
+    int i;
+    char ts = 0;
+    if (task->flags == 2) //如果指定任务处于运行状态的话
     {
-        mt_tr = 4 * 8;
+        if (task == taskctl->tasks[taskctl->now])
+        {
+            ts = 1; //如果让自行休眠的话,则接下来需要进行任务切换
+        }
+        for (i = 0; i < taskctl->running; i++)
+        {
+            if (taskctl->tasks[i] == task) //寻找task所在的位置
+            {
+                break;
+            }
+        }
+        taskctl->running--;
+        if (i < taskctl->now)
+        {
+            taskctl->now--;
+        }
+        for (; i < taskctl->running; i++) // 前移
+        {
+            taskctl->tasks[i] = taskctl->tasks[i + 1];
+        }
+        task->flags = 1; //休眠状态
+        if (ts != 0)
+        {
+            if (taskctl->now >= taskctl->running)
+            {
+                taskctl->now = 0;
+            }
+            farjmp(0, taskctl->tasks[taskctl->now]->sel);
+        }
     }
-    else
-    {
-        mt_tr = 3 * 8;
-    }
-    timer_settime(mt_timer, 2);
-    farjmp(0, mt_tr);
     return;
 }

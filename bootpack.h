@@ -39,7 +39,7 @@ void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf);
 int fifo8_put(struct FIFO8 *fifo, unsigned char data);
 int fifo8_get(struct FIFO8 *fifo);
 int fifo8_status(struct FIFO8 *fifo);
-void fifo32_init(struct FIFO32 *fifo, int size, int *buf);
+void fifo32_init(struct FIFO32 *fifo, int size, int *buf, struct TASK *task);
 int fifo32_put(struct FIFO32 *fifo, int data);
 int fifo32_get(struct FIFO32 *fifo);
 int fifo32_status(struct FIFO32 *fifo);
@@ -96,9 +96,8 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title);
 void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
 
 //mtask.c
-void mt_init(void);
-void mt_taskswitch(void);
 void task_switch(void);
 void task_run(struct TASK *task);
 struct TASK *task_alloc(void);
 struct TASK *task_init(struct MEMMAN *memman);
+void task_sleep(struct TASK *task);
