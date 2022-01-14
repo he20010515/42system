@@ -189,7 +189,7 @@ void putblock8_8(char *vram, int vxsize, int pxsize, int pysize, int px0, int py
     return;
 }
 
-void make_window8(unsigned char *buf, int xsize, int ysize, char *title)
+void make_window8(unsigned char *buf, int xsize, int ysize, char *title, int highlight)
 {
     static char closebtn[14][16] = {
         "OOOOOOOOOOOOOOO@",
@@ -207,7 +207,18 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title)
         "O$$$$$$$$$$$$$$@",
         "@@@@@@@@@@@@@@@@"};
     int x, y;
-    char c;
+    char c, tc, tbc;
+    if (highlight != 0)
+    {
+        tc = COL8_FFFFFF;
+        tbc = COL8_000084;
+    }
+    else
+    {
+        tc = COL8_C6C6C6;
+        tbc = COL8_848484;
+    }
+
     boxfill8(buf, xsize, COL8_C6C6C6, 0, 0, xsize - 1, 0);
     boxfill8(buf, xsize, COL8_FFFFFF, 1, 1, xsize - 2, 1);
     boxfill8(buf, xsize, COL8_C6C6C6, 0, 0, 0, ysize - 1);
@@ -215,10 +226,10 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title)
     boxfill8(buf, xsize, COL8_848484, xsize - 2, 1, xsize - 2, ysize - 2);
     boxfill8(buf, xsize, COL8_000000, xsize - 1, 0, xsize - 1, ysize - 1);
     boxfill8(buf, xsize, COL8_C6C6C6, 2, 2, xsize - 3, ysize - 3);
-    boxfill8(buf, xsize, COL8_000084, 3, 3, xsize - 4, 20);
+    boxfill8(buf, xsize, tbc, 3, 3, xsize - 4, 20);
     boxfill8(buf, xsize, COL8_848484, 1, ysize - 2, xsize - 2, ysize - 2);
     boxfill8(buf, xsize, COL8_000000, 0, ysize - 1, xsize - 1, ysize - 1);
-    putfonts8_asc(buf, xsize, 24, 4, COL8_FFFFFF, title);
+    putfonts8_asc(buf, xsize, 24, 4, tc, title);
     for (y = 0; y < 14; y++)
     {
         for (x = 0; x < 16; x++)
@@ -263,15 +274,15 @@ void putfonts8_asc_sht(
 
 void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c)
 {
-	int x1 = x0 + sx, y1 = y0 + sy;
-	boxfill8(sht->buf, sht->bxsize, COL8_848484, x0 - 2, y0 - 3, x1 + 1, y0 - 3);
-	boxfill8(sht->buf, sht->bxsize, COL8_848484, x0 - 3, y0 - 3, x0 - 3, y1 + 1);
-	boxfill8(sht->buf, sht->bxsize, COL8_FFFFFF, x0 - 3, y1 + 2, x1 + 1, y1 + 2);
-	boxfill8(sht->buf, sht->bxsize, COL8_FFFFFF, x1 + 2, y0 - 3, x1 + 2, y1 + 2);
-	boxfill8(sht->buf, sht->bxsize, COL8_000000, x0 - 1, y0 - 2, x1 + 0, y0 - 2);
-	boxfill8(sht->buf, sht->bxsize, COL8_000000, x0 - 2, y0 - 2, x0 - 2, y1 + 0);
-	boxfill8(sht->buf, sht->bxsize, COL8_C6C6C6, x0 - 2, y1 + 1, x1 + 0, y1 + 1);
-	boxfill8(sht->buf, sht->bxsize, COL8_C6C6C6, x1 + 1, y0 - 2, x1 + 1, y1 + 1);
-	boxfill8(sht->buf, sht->bxsize, c, x0 - 1, y0 - 1, x1 + 0, y1 + 0);
-	return;
+    int x1 = x0 + sx, y1 = y0 + sy;
+    boxfill8(sht->buf, sht->bxsize, COL8_848484, x0 - 2, y0 - 3, x1 + 1, y0 - 3);
+    boxfill8(sht->buf, sht->bxsize, COL8_848484, x0 - 3, y0 - 3, x0 - 3, y1 + 1);
+    boxfill8(sht->buf, sht->bxsize, COL8_FFFFFF, x0 - 3, y1 + 2, x1 + 1, y1 + 2);
+    boxfill8(sht->buf, sht->bxsize, COL8_FFFFFF, x1 + 2, y0 - 3, x1 + 2, y1 + 2);
+    boxfill8(sht->buf, sht->bxsize, COL8_000000, x0 - 1, y0 - 2, x1 + 0, y0 - 2);
+    boxfill8(sht->buf, sht->bxsize, COL8_000000, x0 - 2, y0 - 2, x0 - 2, y1 + 0);
+    boxfill8(sht->buf, sht->bxsize, COL8_C6C6C6, x0 - 2, y1 + 1, x1 + 0, y1 + 1);
+    boxfill8(sht->buf, sht->bxsize, COL8_C6C6C6, x1 + 1, y0 - 2, x1 + 1, y1 + 1);
+    boxfill8(sht->buf, sht->bxsize, c, x0 - 1, y0 - 1, x1 + 0, y1 + 0);
+    return;
 }

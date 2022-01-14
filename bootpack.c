@@ -16,7 +16,7 @@ void HariMain(void)
 	int i;
 	int mx = 0, my = 0;
 	struct SHTCTL *shtctl;
-	struct SHEET *sht_back, *sht_mouse, *sht_win;
+	struct SHEET *sht_back, *sht_mouse, *sht_win, *sht_win_b[3];
 	unsigned char *buf_back, buf_mouse[16 * 16], *buf_win;
 	struct FIFO32 fifo;
 	int fifobuf[128];
@@ -64,41 +64,55 @@ void HariMain(void)
 	mx = (binfo->scrnx - 16) / 2; /* 将鼠标移动到画面中央 */
 	my = (binfo->scrny - 28 - 16) / 2;
 	sheet_slide(sht_mouse, mx, my);
-
 	//sht_win
 	buf_win = (unsigned char *)memman_alloc_4k(memman, 160 * 52);
 	sht_win = sheet_alloc(shtctl);
 	sheet_setbuf(sht_win, buf_win, 160, 52, -1);
-	make_window8(buf_win, 160, 68, "window");
+	make_window8(buf_win, 160, 68, "window", 1);
 	make_textbox8(sht_win, 8, 28, 144, 16, COL8_FFFFFF);
-	//sheets slide
-	sheet_slide(sht_back, 0, 0);
-	sheet_slide(sht_win, 80, 72);
-	//sheet updown
-	sheet_updown(sht_back, 0);
-	sheet_updown(sht_win, 1);
-	sheet_updown(sht_mouse, 2);
+
 	//memory
 	sprintf(tempstr, "total memory:%dMB   free:%d KB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfonts8_asc_sht(sht_back, 0, 16 * 2, COL8_FFFFFF, COL8_008484, tempstr);
 	int cursor_x = 8, cursor_c = COL8_FFFFFF;
 	//任务切换
-
-	struct TASK *task_b, *task_a;
+	struct TASK *task_b[3], *task_a;
 	task_a = task_init(memman); // 第一个任务
 	fifo.task = task_a;
-	task_b = task_alloc();
-	task_b->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 8;
-	task_b->tss.eip = (int)&task_b_main;
-	task_b->tss.es = 1 * 8;
-	task_b->tss.cs = 2 * 8;
-	task_b->tss.ss = 1 * 8;
-	task_b->tss.ds = 1 * 8;
-	task_b->tss.fs = 1 * 8;
-	task_b->tss.gs = 1 * 8;
-	*((int *)(task_b->tss.esp + 4)) = (int)sht_back; // 参数传递
-	task_run(task_b);
+	//sht_win_b
+	for (i = 0; i < 3; i++)
+	{
+		sht_win_b[i] = sheet_alloc(shtctl);
+		unsigned char *buf_win_b = (unsigned char *)memman_alloc_4k(memman, 144 * 52);
+		sheet_setbuf(sht_win_b[i], buf_win_b, 144, 52, -1); //无透明色
+		sprintf(tempstr, "task_b%d", i);
+		make_window8(buf_win_b, 144, 52, tempstr, 0);
+		task_b[i] = task_alloc();
+		task_b[i]->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 8;
+		task_b[i]->tss.eip = (int)&task_b_main;
+		task_b[i]->tss.es = 1 * 8;
+		task_b[i]->tss.cs = 2 * 8;
+		task_b[i]->tss.ss = 1 * 8;
+		task_b[i]->tss.ds = 1 * 8;
+		task_b[i]->tss.fs = 1 * 8;
+		task_b[i]->tss.gs = 1 * 8;
+		*((int *)(task_b[i]->tss.eip + 4)) = (int)sht_win_b[i];
+		task_run(task_b[i]);
+	}
 
+	//sheets slide
+	sheet_slide(sht_back, 0, 0);
+	sheet_slide(sht_win, 8, 56);
+	sheet_slide(sht_win_b[0], 168, 56);
+	sheet_slide(sht_win_b[1], 8, 116);
+	sheet_slide(sht_win_b[2], 168, 116);
+	//sheet updown
+	sheet_updown(sht_back, 0);
+	sheet_updown(sht_win, 4);
+	sheet_updown(sht_win_b[0], 1);
+	sheet_updown(sht_win_b[1], 2);
+	sheet_updown(sht_win_b[2], 3);
+	sheet_updown(sht_mouse, 5);
 	for (;;)
 	{
 		io_cli();
@@ -210,17 +224,14 @@ void HariMain(void)
 		}
 	}
 }
-
-void task_b_main(struct SHEET *sht_back)
+void task_b_main(struct SHEET *sht_win_b)
 {
 	struct FIFO32 fifo;
-	struct TIMER *timer_put, *timer_1s;
+	struct TIMER *timer_1s;
 	int i, fifobuf[128], count = 0, count0 = 0;
 	char s[12];
+
 	fifo32_init(&fifo, 128, fifobuf, 0);
-	timer_put = timer_alloc();
-	timer_init(timer_put, &fifo, 1);
-	timer_settime(timer_put, 1);
 	timer_1s = timer_alloc();
 	timer_init(timer_1s, &fifo, 100);
 	timer_settime(timer_1s, 100);
@@ -237,16 +248,10 @@ void task_b_main(struct SHEET *sht_back)
 		{
 			i = fifo32_get(&fifo);
 			io_sti();
-			if (i == 1)
-			{
-				sprintf(s, "%11d", count);
-				putfonts8_asc_sht(sht_back, 0, 144, COL8_FFFFFF, COL8_008484, s);
-				timer_settime(timer_put, 1);
-			}
-			else if (i == 100)
+			if (i == 100)
 			{
 				sprintf(s, "%11d", count - count0);
-				putfonts8_asc_sht(sht_back, 0, 128, COL8_FFFFFF, COL8_008484, s);
+				putfonts8_asc_sht(sht_win_b, 24, 28, COL8_000000, COL8_C6C6C6, s);
 				count0 = count;
 				timer_settime(timer_1s, 100);
 			}
