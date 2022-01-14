@@ -5,8 +5,6 @@
 
 void task_b_main(struct SHEET *sht_back);
 extern struct TIMERCTL timerctl;
-extern int keydata0;
-extern int mousedata0;
 
 void HariMain(void)
 {
@@ -45,40 +43,21 @@ void HariMain(void)
 	memman_free(memman, 0x00400000, memtotal - 0x00400000);
 	init_palette();
 
-	//timer设定开始
-	struct TIMER *cursor_timer;
-	cursor_timer = timer_alloc();
-	timer_init(cursor_timer, &fifo, 1);
-	timer_settime(cursor_timer, 50);
 	//sht_ctl
 	shtctl = shtctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
+	//任务切换
+	struct TASK *task_b[3], *task_a;
+	task_a = task_init(memman); // 第一个任务
+	fifo.task = task_a;
 	//sht_back
 	sht_back = sheet_alloc(shtctl);
 	buf_back = (unsigned char *)memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
 	sheet_setbuf(sht_back, buf_back, binfo->scrnx, binfo->scrny, -1); //没有透明色
 	init_screen8(buf_back, binfo->scrnx, binfo->scrny);
-	//sht_mouse
-	sht_mouse = sheet_alloc(shtctl);
-	sheet_setbuf(sht_mouse, buf_mouse, 16, 16, 99);
-	init_mouse_cursor8(buf_mouse, 99);
-	mx = (binfo->scrnx - 16) / 2; /* 将鼠标移动到画面中央 */
-	my = (binfo->scrny - 28 - 16) / 2;
-	sheet_slide(sht_mouse, mx, my);
-	//sht_win
-	buf_win = (unsigned char *)memman_alloc_4k(memman, 160 * 52);
-	sht_win = sheet_alloc(shtctl);
-	sheet_setbuf(sht_win, buf_win, 160, 52, -1);
-	make_window8(buf_win, 160, 68, "window", 1);
-	make_textbox8(sht_win, 8, 28, 144, 16, COL8_FFFFFF);
-
-	//memory
-	sprintf(tempstr, "total memory:%dMB   free:%d KB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
-	putfonts8_asc_sht(sht_back, 0, 16 * 2, COL8_FFFFFF, COL8_008484, tempstr);
-	int cursor_x = 8, cursor_c = COL8_FFFFFF;
-	//任务切换
-	struct TASK *task_b[3], *task_a;
-	task_a = task_init(memman); // 第一个任务
-	fifo.task = task_a;
+	struct TIMER *cursor_timer;
+	cursor_timer = timer_alloc();
+	timer_init(cursor_timer, &fifo, 1);
+	timer_settime(cursor_timer, 50);
 	//sht_win_b
 	for (i = 0; i < 3; i++)
 	{
@@ -99,7 +78,22 @@ void HariMain(void)
 		*((int *)(task_b[i]->tss.eip + 4)) = (int)sht_win_b[i];
 		task_run(task_b[i]);
 	}
+	//sht_win
+	buf_win = (unsigned char *)memman_alloc_4k(memman, 160 * 52);
+	sht_win = sheet_alloc(shtctl);
+	sheet_setbuf(sht_win, buf_win, 160, 52, -1);
+	make_window8(buf_win, 160, 68, "window", 1);
+	make_textbox8(sht_win, 8, 28, 144, 16, COL8_FFFFFF);
 
+	int cursor_x = 8, cursor_c = COL8_FFFFFF;
+
+	//sht_mouse
+	sht_mouse = sheet_alloc(shtctl);
+	sheet_setbuf(sht_mouse, buf_mouse, 16, 16, 99);
+	init_mouse_cursor8(buf_mouse, 99);
+	mx = (binfo->scrnx - 16) / 2; /* 将鼠标移动到画面中央 */
+	my = (binfo->scrny - 28 - 16) / 2;
+	sheet_slide(sht_mouse, mx, my);
 	//sheets slide
 	sheet_slide(sht_back, 0, 0);
 	sheet_slide(sht_win, 8, 56);
@@ -113,6 +107,12 @@ void HariMain(void)
 	sheet_updown(sht_win_b[1], 2);
 	sheet_updown(sht_win_b[2], 3);
 	sheet_updown(sht_mouse, 5);
+	//memory
+	sprintf(tempstr, "(%3d, %3d)", mx, my);
+	putfonts8_asc_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, tempstr);
+	sprintf(tempstr, "total memory:%dMB   free:%d KB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
+	putfonts8_asc_sht(sht_back, 0, 16 * 2, COL8_FFFFFF, COL8_008484, tempstr);
+
 	for (;;)
 	{
 		io_cli();
@@ -235,6 +235,7 @@ void task_b_main(struct SHEET *sht_win_b)
 	timer_1s = timer_alloc();
 	timer_init(timer_1s, &fifo, 100);
 	timer_settime(timer_1s, 100);
+	putfonts8_asc_sht(sht_win_b, 24, 28, COL8_000000, COL8_C6C6C6, "??");
 
 	for (;;)
 	{
