@@ -54,15 +54,12 @@ void HariMain(void)
 	buf_back = (unsigned char *)memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
 	sheet_setbuf(sht_back, buf_back, binfo->scrnx, binfo->scrny, -1); //没有透明色
 	init_screen8(buf_back, binfo->scrnx, binfo->scrny);
-	struct TIMER *cursor_timer;
-	cursor_timer = timer_alloc();
-	timer_init(cursor_timer, &fifo, 1);
-	timer_settime(cursor_timer, 50);
 	//sht_win_b
+	unsigned char *buf_win_b;
 	for (i = 0; i < 3; i++)
 	{
 		sht_win_b[i] = sheet_alloc(shtctl);
-		unsigned char *buf_win_b = (unsigned char *)memman_alloc_4k(memman, 144 * 52);
+		buf_win_b = (unsigned char *)memman_alloc_4k(memman, 144 * 52);
 		sheet_setbuf(sht_win_b[i], buf_win_b, 144, 52, -1); //无透明色
 		sprintf(tempstr, "task_b%d", i);
 		make_window8(buf_win_b, 144, 52, tempstr, 0);
@@ -75,17 +72,20 @@ void HariMain(void)
 		task_b[i]->tss.ds = 1 * 8;
 		task_b[i]->tss.fs = 1 * 8;
 		task_b[i]->tss.gs = 1 * 8;
-		*((int *)(task_b[i]->tss.eip + 4)) = (int)sht_win_b[i];
+		*((int *)(task_b[i]->tss.esp + 4)) = (int)sht_win_b[i];
 		task_run(task_b[i]);
 	}
 	//sht_win
-	buf_win = (unsigned char *)memman_alloc_4k(memman, 160 * 52);
+	buf_win = (unsigned char *)memman_alloc_4k(memman, 144 * 52);
 	sht_win = sheet_alloc(shtctl);
-	sheet_setbuf(sht_win, buf_win, 160, 52, -1);
-	make_window8(buf_win, 160, 68, "window", 1);
-	make_textbox8(sht_win, 8, 28, 144, 16, COL8_FFFFFF);
-
+	sheet_setbuf(sht_win, buf_win, 144, 52, -1);
+	make_window8(buf_win, 144, 52, "task_a", 1);
+	make_textbox8(sht_win, 8, 28, 128, 16, COL8_FFFFFF);
 	int cursor_x = 8, cursor_c = COL8_FFFFFF;
+	struct TIMER *cursor_timer;
+	cursor_timer = timer_alloc();
+	timer_init(cursor_timer, &fifo, 1);
+	timer_settime(cursor_timer, 50);
 
 	//sht_mouse
 	sht_mouse = sheet_alloc(shtctl);
@@ -93,8 +93,8 @@ void HariMain(void)
 	init_mouse_cursor8(buf_mouse, 99);
 	mx = (binfo->scrnx - 16) / 2; /* 将鼠标移动到画面中央 */
 	my = (binfo->scrny - 28 - 16) / 2;
-	sheet_slide(sht_mouse, mx, my);
 	//sheets slide
+	sheet_slide(sht_mouse, mx, my);
 	sheet_slide(sht_back, 0, 0);
 	sheet_slide(sht_win, 8, 56);
 	sheet_slide(sht_win_b[0], 168, 56);
@@ -235,8 +235,6 @@ void task_b_main(struct SHEET *sht_win_b)
 	timer_1s = timer_alloc();
 	timer_init(timer_1s, &fifo, 100);
 	timer_settime(timer_1s, 100);
-	putfonts8_asc_sht(sht_win_b, 24, 28, COL8_000000, COL8_C6C6C6, "??");
-
 	for (;;)
 	{
 		count++;
