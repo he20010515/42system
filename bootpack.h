@@ -94,8 +94,12 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title, int hig
 void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
 
 // mtask.c
-void task_switch(void);
-void task_run(struct TASK *task, int level, int priority);
-struct TASK *task_alloc(void);
 struct TASK *task_init(struct MEMMAN *memman);
+struct TASK *task_now(void);
+void task_add(struct TASK *task);
+void task_remove(struct TASK *task);
+void task_switchsub(void);
+struct TASK *task_alloc(void);
+void task_run(struct TASK *task, int level, int priority);
+void task_switch(void);
 void task_sleep(struct TASK *task);
