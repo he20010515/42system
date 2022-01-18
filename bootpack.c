@@ -48,7 +48,7 @@ void HariMain(void)
 	//任务切换
 	struct TASK *task_b[3], *task_a;
 	task_a = task_init(memman); // 第一个任务
-	task_run(task_a, 10);
+	task_run(task_a, 1, 2);
 	fifo.task = task_a;
 	// sht_back
 	sht_back = sheet_alloc(shtctl);
@@ -74,7 +74,7 @@ void HariMain(void)
 		task_b[i]->tss.fs = 1 * 8;
 		task_b[i]->tss.gs = 1 * 8;
 		*((int *)(task_b[i]->tss.esp + 4)) = (int)sht_win_b[i];
-		task_run(task_b[i], i + 1);
+		// task_run(task_b[i], 2, i + 1);
 	}
 	// sht_win
 	buf_win = (unsigned char *)memman_alloc_4k(memman, 144 * 52);

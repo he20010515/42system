@@ -19,8 +19,6 @@ unsigned int memtest_sub(unsigned int start, unsigned int end);
 int load_cr0(void);
 void store_cr0(int cr0);
 void load_tr(int tr);
-void taskswitch4(void);
-void taskswitch3(void);
 void farjmp(int eip, int cs);
 
 // dsctbl.c
@@ -97,7 +95,7 @@ void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
 
 // mtask.c
 void task_switch(void);
-void task_run(struct TASK *task, int priority);
+void task_run(struct TASK *task, int level, int priority);
 struct TASK *task_alloc(void);
 struct TASK *task_init(struct MEMMAN *memman);
 void task_sleep(struct TASK *task);
