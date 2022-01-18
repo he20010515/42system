@@ -30,7 +30,7 @@ void HariMain(void)
 	fifo32_init(&fifo, 128, fifobuf, 0);
 	init_gdtidt();
 	init_pic();
-	io_sti(); //IDT/PIC初始化已经完成,开放CPU中断
+	io_sti(); // IDT/PIC初始化已经完成,开放CPU中断
 	init_pit();
 
 	init_keyboard(&fifo, 256);
@@ -43,18 +43,19 @@ void HariMain(void)
 	memman_free(memman, 0x00400000, memtotal - 0x00400000);
 	init_palette();
 
-	//sht_ctl
+	// sht_ctl
 	shtctl = shtctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
 	//任务切换
 	struct TASK *task_b[3], *task_a;
 	task_a = task_init(memman); // 第一个任务
+	task_run(task_a, 10);
 	fifo.task = task_a;
-	//sht_back
+	// sht_back
 	sht_back = sheet_alloc(shtctl);
 	buf_back = (unsigned char *)memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
 	sheet_setbuf(sht_back, buf_back, binfo->scrnx, binfo->scrny, -1); //没有透明色
 	init_screen8(buf_back, binfo->scrnx, binfo->scrny);
-	//sht_win_b
+	// sht_win_b
 	unsigned char *buf_win_b;
 	for (i = 0; i < 3; i++)
 	{
@@ -73,9 +74,9 @@ void HariMain(void)
 		task_b[i]->tss.fs = 1 * 8;
 		task_b[i]->tss.gs = 1 * 8;
 		*((int *)(task_b[i]->tss.esp + 4)) = (int)sht_win_b[i];
-		task_run(task_b[i]);
+		task_run(task_b[i], i + 1);
 	}
-	//sht_win
+	// sht_win
 	buf_win = (unsigned char *)memman_alloc_4k(memman, 144 * 52);
 	sht_win = sheet_alloc(shtctl);
 	sheet_setbuf(sht_win, buf_win, 144, 52, -1);
@@ -87,27 +88,27 @@ void HariMain(void)
 	timer_init(cursor_timer, &fifo, 1);
 	timer_settime(cursor_timer, 50);
 
-	//sht_mouse
+	// sht_mouse
 	sht_mouse = sheet_alloc(shtctl);
 	sheet_setbuf(sht_mouse, buf_mouse, 16, 16, 99);
 	init_mouse_cursor8(buf_mouse, 99);
 	mx = (binfo->scrnx - 16) / 2; /* 将鼠标移动到画面中央 */
 	my = (binfo->scrny - 28 - 16) / 2;
-	//sheets slide
+	// sheets slide
 	sheet_slide(sht_mouse, mx, my);
 	sheet_slide(sht_back, 0, 0);
 	sheet_slide(sht_win, 8, 56);
 	sheet_slide(sht_win_b[0], 168, 56);
 	sheet_slide(sht_win_b[1], 8, 116);
 	sheet_slide(sht_win_b[2], 168, 116);
-	//sheet updown
+	// sheet updown
 	sheet_updown(sht_back, 0);
 	sheet_updown(sht_win, 4);
 	sheet_updown(sht_win_b[0], 1);
 	sheet_updown(sht_win_b[1], 2);
 	sheet_updown(sht_win_b[2], 3);
 	sheet_updown(sht_mouse, 5);
-	//memory
+	// memory
 	sprintf(tempstr, "(%3d, %3d)", mx, my);
 	putfonts8_asc_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, tempstr);
 	sprintf(tempstr, "total memory:%dMB   free:%d KB", memtotal / (1024 * 1024), memman_total(memman) / 1024);

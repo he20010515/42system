@@ -1,6 +1,6 @@
-//bootpack.h
+// bootpack.h
 #include "struct.h"
-//naskfunc.nas
+// naskfunc.nas
 void io_hlt(void);
 void io_cli(void);
 void io_sti(void);
@@ -23,7 +23,7 @@ void taskswitch4(void);
 void taskswitch3(void);
 void farjmp(int eip, int cs);
 
-//dsctbl.c
+// dsctbl.c
 
 void init_gdtidt(void);
 void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, unsigned int limit, int base, int ar);
@@ -34,7 +34,7 @@ void inthandler21(int *esp);
 void inthandler27(int *esp);
 void inthandler2c(int *esp);
 
-//fifo.c
+// fifo.c
 void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf);
 int fifo8_put(struct FIFO8 *fifo, unsigned char data);
 int fifo8_get(struct FIFO8 *fifo);
@@ -44,15 +44,15 @@ int fifo32_put(struct FIFO32 *fifo, int data);
 int fifo32_get(struct FIFO32 *fifo);
 int fifo32_status(struct FIFO32 *fifo);
 
-//mouse.c
+// mouse.c
 void enable_mouse(struct FIFO32 *fifo, int data0, struct MOUSE_DEC *dec);
 int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data);
 
-//keyboard.c
+// keyboard.c
 void init_keyboard(struct FIFO32 *fifo, int data0);
 void wait_KBC_sendready(void);
 
-//memory.c
+// memory.c
 unsigned int memtest(unsigned int start, unsigned int end);
 int memman_free(struct MEMMAN *man, unsigned int addr, unsigned int size);
 unsigned int memman_alloc(struct MEMMAN *self, unsigned int size);
@@ -61,7 +61,7 @@ void memman_init(struct MEMMAN *self);
 unsigned memman_alloc_4k(struct MEMMAN *man, unsigned int size);
 unsigned memman_free_4k(struct MEMMAN *man, unsigned int addr, unsigned int size);
 
-//sheet.c:
+// sheet.c:
 
 struct SHTCTL *shtctl_init(struct MEMMAN *memman, unsigned char *vram, int xsize, int ysize);
 struct SHEET *sheet_alloc(struct SHTCTL *ctl);
@@ -72,7 +72,7 @@ void sheet_slide(struct SHEET *sht, int vx0, int vy0);
 void sheet_free(struct SHEET *sht);
 void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0, int h1);
 
-//timer.c
+// timer.c
 
 void init_pit(void);
 void inthandler20(int *esp);
@@ -81,7 +81,7 @@ void timer_free(struct TIMER *timer);
 void timer_init(struct TIMER *timer, struct FIFO32 *fifo, unsigned char data);
 void timer_settime(struct TIMER *timer, unsigned int timeout);
 
-//graphic.c
+// graphic.c
 
 void init_screen8(char *vram, int xsize, int ysize);
 void init_palette(void);
@@ -95,9 +95,9 @@ void putfonts8_asc_sht(struct SHEET *sht, int x, int y, int c, int b, char *s);
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title, int highlight);
 void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
 
-//mtask.c
+// mtask.c
 void task_switch(void);
-void task_run(struct TASK *task);
+void task_run(struct TASK *task, int priority);
 struct TASK *task_alloc(void);
 struct TASK *task_init(struct MEMMAN *memman);
 void task_sleep(struct TASK *task);
