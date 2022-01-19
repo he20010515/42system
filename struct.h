@@ -84,6 +84,7 @@ struct TASK
     int sel, flags;      // sel用来存放GDT的编号;
     int priority, level; // 优先级
     struct TSS32 tss;
+    struct FIFO32 fifo;
 };
 
 struct TASKLEVEL
