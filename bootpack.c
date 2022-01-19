@@ -166,7 +166,6 @@ void HariMain(void)
 						tempstr[0] += 'a' - 'A';
 					}
 				}
-
 				if (tempstr[0] != 0) // 字母键-一般字符
 				{
 					if (key_to == 0)
@@ -203,11 +202,17 @@ void HariMain(void)
 						key_to = 1;
 						make_wtitle8(buf_win, sht_win_taska->bxsize, "task_a", 0);
 						make_wtitle8(sht_win_console->buf, sht_win_console->bxsize, "console", 1);
+						cursor_c = -1;
+						boxfill8(sht_win_taska->buf, sht_win_taska->bxsize, COL8_FFFFFF, cursor_x, 28, cursor_x + 7, 43);
+						fifo32_put(&task_console->fifo, 2); //窗口光标ON
 						break;
 					case 1:
 						key_to = 0;
 						make_wtitle8(buf_win, sht_win_taska->bxsize, "task_a", 1);
 						make_wtitle8(sht_win_console->buf, sht_win_console->bxsize, "console", 0);
+						cursor_c = COL8_000000;
+						fifo32_put(&task_console->fifo, 3); //窗口光标OFF
+
 						break;
 					}
 					sheet_refresh(sht_win_taska, 0, 0, sht_win_taska->bxsize, 21);
@@ -242,14 +247,23 @@ void HariMain(void)
 					fifo32_put(&keycmd, KEYCMD_LED);
 					fifo32_put(&keycmd, key_leds);
 					break;
-				case 0xfa:
+				case 0xfa: // 接收完毕,准备就绪
 					keycmd_wait = -1;
 					break;
-				case 0xfe:
+				case 0xfe: // 接受尚未完毕,继续等待
 					wait_KBC_sendready();
 					io_out8(PORT_KEYDAT, keycmd_wait);
+				case 0x1c: // 回车键
+					if (key_to != 0)
+					{
+						fifo32_put(&task_console->fifo, 10 + 256);
+					}
+					break;
 				}
-				boxfill8(sht_win_taska->buf, sht_win_taska->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+				if (cursor_c >= 0)
+				{
+					boxfill8(sht_win_taska->buf, sht_win_taska->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+				}
 				sheet_refresh(sht_win_taska, cursor_x, 28, cursor_x + 8, 44);
 			}
 			else if (512 <= i AND i <= 767) //鼠标数据
@@ -300,28 +314,31 @@ void HariMain(void)
 					}
 				}
 			}
-			else if (i == 2 OR i == 10 OR i == 1 OR i == 3 OR i == 0) // 光标定时器
+			else if (i == 1 OR i == 0) // 光标定时器
 			{
-				switch (i)
+
+				if (i != 0)
 				{
-				case 1:
-				case 0:
-					if (i != 0)
+					timer_init(cursor_timer, &fifo, 0);
+					if (cursor_c >= 0)
 					{
-						timer_init(cursor_timer, &fifo, 0);
 						cursor_c = COL8_000000;
 					}
-					else
+				}
+				else
+				{
+					timer_init(cursor_timer, &fifo, 1);
+					if (cursor_c >= 0)
 					{
-						timer_init(cursor_timer, &fifo, 1);
 						cursor_c = COL8_FFFFFF;
 					}
-					timer_settime(cursor_timer, 50);
+				}
+
+				timer_settime(cursor_timer, 50);
+				if (cursor_c >= 0)
+				{
 					boxfill8(sht_win_taska->buf, sht_win_taska->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 					sheet_refresh(sht_win_taska, cursor_x, 28, cursor_x + 8, 44);
-					break;
-				default:
-					break;
 				}
 			}
 		}
@@ -331,7 +348,8 @@ void console_task(struct SHEET *sheet)
 {
 	struct TIMER *cursor_timer;
 	char s[100];
-	int i, fifobuf[128], cursor_x = 16, cursor_c = COL8_000000;
+	int i, fifobuf[128], cursor_x = 16, cursor_y = 28, cursor_c = -1;
+	int x, y;
 	struct TASK *task = task_now();
 	fifo32_init(&task->fifo, 128, fifobuf, task);
 	// cursor
@@ -352,35 +370,77 @@ void console_task(struct SHEET *sheet)
 		{
 			i = fifo32_get(&task->fifo);
 			io_sti();
-			if (i <= 1) // i = 1 or 0
+			if (i <= 1) // 控制光标闪烁
 			{
 				switch (i)
 				{
 				case 0:
 					timer_init(cursor_timer, &task->fifo, 1);
-					cursor_c = COL8_000000;
+					if (cursor_c >= 0)
+					{
+						cursor_c = COL8_000000;
+					}
 					break;
 				case 1:
 					timer_init(cursor_timer, &task->fifo, 0);
-					cursor_c = COL8_FFFFFF;
-					break;
-				default:
+					if (cursor_c >= 0)
+					{
+						cursor_c = COL8_FFFFFF;
+					}
 					break;
 				}
 				timer_settime(cursor_timer, 50);
-				boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-				sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
+			}
+			if (i == 2 OR i == 3) // 控制光标开启或者关闭
+			{
+				if (i == 2)
+				{
+					cursor_c = COL8_FFFFFF;
+				}
+				else if (i == 3)
+				{
+					boxfill8(sheet->buf, sheet->bxsize, COL8_000000, cursor_x, 28, cursor_x + 7, 43);
+					cursor_c = -1;
+				}
 			}
 			if (256 <= i AND i <= 511) //来自taska的键盘数据
 			{
 				i -= 256;
-				if (i == 8)
+				if (i == 8) //退格键
 				{
 					if (cursor_x > 16)
 					{
-						putfonts8_asc_sht(sheet, cursor_x, 28, COL8_FFFFFF, COL8_000000, " ");
+						putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " ");
 						cursor_x -= 8;
 					}
+				}
+				else if (i == 10) // 回车键
+				{
+					putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " "); //用空格将光标擦除
+					if (cursor_y < 28 + 112)
+					{
+						cursor_y += 16; //换行
+					}
+					else
+					{
+						for (y = 28; y < 28 + 112; y++)
+						{
+							for (x = 8; x < 8 + 240; x++)
+							{
+								sheet->buf[x + y * sheet->bxsize] = sheet->buf[x + (y + 16) * sheet->bxsize];
+							}
+						}
+						for (y = 28 + 112; y < 28 + 128; y++)
+						{
+							for (x = 8; x < 8 + 240; x++)
+							{
+								sheet->buf[x + y * sheet->bxsize] = COL8_000000;
+							}
+						}
+						sheet_refresh(sheet, 8, 28, 8 + 240, 28 + 128);
+					}
+					putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, ">"); // 显示提示符
+					cursor_x = 16;
 				}
 				else
 				{
@@ -388,13 +448,16 @@ void console_task(struct SHEET *sheet)
 					{
 						s[0] = i;
 						s[1] = 0;
-						putfonts8_asc_sht(sheet, cursor_x, 28, COL8_FFFFFF, COL8_000000, s);
+						putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, s);
 						cursor_x += 8;
 					}
 				}
 			}
-			boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-			sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
+			if (cursor_c >= 0) // 刷新光标
+			{
+				boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, cursor_y, cursor_x + 7, cursor_y + 16);
+			}
+			sheet_refresh(sheet, cursor_x, cursor_y, cursor_x + 8, cursor_y + 16);
 		}
 	}
 }
