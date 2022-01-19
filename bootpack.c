@@ -2,6 +2,7 @@
 #include "bootpack.h"
 #include "stdio.h"
 #include <string.h>
+#define KEYCMD_LED 0xed
 // tasks
 void console_task(struct SHEET *sheet);
 void HariMain(void);
@@ -35,8 +36,8 @@ void HariMain(void)
 	struct SHTCTL *shtctl;
 	struct SHEET *sht_back, *sht_mouse, *sht_win_taska, *sht_win_console;
 	unsigned char *buf_back, buf_mouse[16 * 16], *buf_win;
-	struct FIFO32 fifo;
-	int fifobuf[128];
+	struct FIFO32 fifo, keycmd;
+	int fifobuf[128], keycmd_buf[32];
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
 
 	fifo32_init(&fifo, 128, fifobuf, 0);
@@ -120,7 +121,11 @@ void HariMain(void)
 	sprintf(tempstr, "total memory:%dMB   free:%d KB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfonts8_asc_sht(sht_back, 0, 16 * 2, COL8_FFFFFF, COL8_008484, tempstr);
 	// key control
-	int key_to = 0, key_shift, key_leds = (binfo->leds >> 4) & 7;
+	int key_to = 0, key_shift, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1;
+	fifo32_init(&keycmd, 32, keycmd_buf, 0);
+	//设置键盘灯状态
+	fifo32_put(&keycmd, KEYCMD_LED);
+	fifo32_put(&keycmd, key_leds);
 
 	for (;;)
 	{
@@ -208,7 +213,7 @@ void HariMain(void)
 					sheet_refresh(sht_win_taska, 0, 0, sht_win_taska->bxsize, 21);
 					sheet_refresh(sht_win_console, 0, 0, sht_win_console->bxsize, 21);
 				}
-				switch (i) // shift键控制
+				switch (i) // 特殊按键控制
 				{
 				case 0x2a: //左shift ON
 					key_shift |= 1;
@@ -222,6 +227,27 @@ void HariMain(void)
 				case 0xb6: //右shifht OFF
 					key_shift &= ~2;
 					break;
+				case 0x3a: // Capslock
+					key_leds ^= 4;
+					fifo32_put(&keycmd, KEYCMD_LED);
+					fifo32_put(&keycmd, key_leds);
+					break;
+				case 0x45: // Numlock
+					key_leds ^= 2;
+					fifo32_put(&keycmd, KEYCMD_LED);
+					fifo32_put(&keycmd, key_leds);
+					break;
+				case 0x46: // ScrollLock
+					key_leds ^= 1;
+					fifo32_put(&keycmd, KEYCMD_LED);
+					fifo32_put(&keycmd, key_leds);
+					break;
+				case 0xfa:
+					keycmd_wait = -1;
+					break;
+				case 0xfe:
+					wait_KBC_sendready();
+					io_out8(PORT_KEYDAT, keycmd_wait);
 				}
 				boxfill8(sht_win_taska->buf, sht_win_taska->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 				sheet_refresh(sht_win_taska, cursor_x, 28, cursor_x + 8, 44);
