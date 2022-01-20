@@ -104,3 +104,12 @@ struct TASK *task_alloc(void);
 void task_run(struct TASK *task, int level, int priority);
 void task_switch(void);
 void task_sleep(struct TASK *task);
+// file.c
+void file_readfat(int *fat, unsigned char *img);
+void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
+// console.c
+int cons_newline(int cursor_y, struct SHEET *sheet);
+
+// taskFunction !! 不能调用!!
+void console_task(struct SHEET *sheet, int memtotal);
+void HariMain(void);

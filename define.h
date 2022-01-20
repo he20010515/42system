@@ -65,3 +65,5 @@
 #define COL8_848484 15
 
 #define AR_TSS32 0x0089
+#define KEYCMD_LED 0xed
+#define ADR_DISKIMG 0x00100000
