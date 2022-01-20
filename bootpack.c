@@ -362,7 +362,8 @@ void console_task(struct SHEET *sheet, int memtotal)
 {
 	struct TIMER *cursor_timer;
 	char s[100];
-	int i, fifobuf[128], cursor_x = 16, cursor_y = 28, cursor_c = -1, *p;
+	char *p;
+	int i, fifobuf[128], cursor_x = 16, cursor_y = 28, cursor_c = -1;
 	int x, y;
 	struct TASK *task = task_now();
 	struct FILEINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG + 0x002600);
@@ -487,7 +488,7 @@ void console_task(struct SHEET *sheet, int memtotal)
 						}
 						cursor_y = cons_newline(cursor_y, sheet);
 					}
-					else if (cmdline[0] == 'c' AND cmdline[1] == 'a' AND cmdline[2] == 't') // cat 命令
+					else if (strncmp(cmdline, "cat", 3) == 0) // cat 命令
 					{
 						//准备文件名
 						for (y = 0; y < 11; y++)
@@ -495,7 +496,7 @@ void console_task(struct SHEET *sheet, int memtotal)
 							s[y] = ' ';
 						}
 						y = 0;
-						for (x = 5; y < 11 AND cmdline[x] != 0; x++)
+						for (x = 4; y < 11 AND cmdline[x] != 0; x++)
 						{
 							if (cmdline[x] == '.' AND y <= 8)
 							{
@@ -512,7 +513,7 @@ void console_task(struct SHEET *sheet, int memtotal)
 							}
 						}
 						//寻找文件
-						for (x = 0; x < 224;) // TODO
+						for (x = 0; x < 224;)
 						{
 							if (finfo[x].name[0] == 0x00)
 							{
@@ -537,16 +538,42 @@ void console_task(struct SHEET *sheet, int memtotal)
 							y = finfo[x].size;
 							p = (char *)(finfo[x].clustno * 512 + 0x003e00 + ADR_DISKIMG);
 							cursor_x = 8;
-							for (x = 0; x < y; x++)
+							for (x = 0; x < y; x++) //逐个输出
 							{
 								s[0] = p[x];
 								s[1] = 0;
-								putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, s);
-								cursor_x += 8;
-								if (cursor_x == 8 + 240)
+								if (s[0] == 0x09) // 制表符
+								{
+									putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " ");
+									cursor_x += 8;
+									if (cursor_x == 8 + 240)
+									{
+										cursor_x = 8;
+										cursor_y = cons_newline(cursor_y, sheet);
+									}
+									if (((cursor_x - 8) & 0x1f) == 0)
+									{
+										break; //如果被32整除则break
+									}
+								}
+								else if (s[0] == 0x0a) //换行
 								{
 									cursor_x = 8;
 									cursor_y = cons_newline(cursor_y, sheet);
+								}
+								else if (s[0] == 0x0d) //回车
+								{
+									;
+								}
+								else
+								{
+									putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, s);
+									cursor_x += 8;
+									if (cursor_x == 8 + 240)
+									{
+										cursor_x = 8;
+										cursor_y = cons_newline(cursor_y, sheet);
+									}
 								}
 							}
 						}
