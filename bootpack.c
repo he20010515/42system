@@ -4,8 +4,10 @@
 #include <string.h>
 #define KEYCMD_LED 0xed
 // tasks
-void console_task(struct SHEET *sheet);
+void console_task(struct SHEET *sheet, int memtotal);
 void HariMain(void);
+// function
+int cons_newline(int cursor_y, struct SHEET *sheet);
 // extern data
 extern struct TIMERCTL timerctl;
 // data
@@ -77,7 +79,7 @@ void HariMain(void)
 	make_window8(buf_win_console, 256, 165, tempstr, 0);
 	make_textbox8(sht_win_console, 8, 28, 240, 128, COL8_000000);
 	task_console = task_alloc();
-	task_console->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 8;
+	task_console->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 12;
 	task_console->tss.eip = (int)&console_task;
 	task_console->tss.es = 1 * 8;
 	task_console->tss.cs = 2 * 8;
@@ -86,6 +88,8 @@ void HariMain(void)
 	task_console->tss.fs = 1 * 8;
 	task_console->tss.gs = 1 * 8;
 	*((int *)(task_console->tss.esp + 4)) = (int)sht_win_console;
+	*((int *)(task_console->tss.esp + 8)) = memtotal;
+
 	task_run(task_console, 2, 2);
 	// sht_win_taska
 	buf_win = (unsigned char *)memman_alloc_4k(memman, 144 * 52);
@@ -115,11 +119,11 @@ void HariMain(void)
 	sheet_updown(sht_win_taska, 4);
 	sheet_updown(sht_win_console, 1);
 	sheet_updown(sht_mouse, 5);
-	// memory
-	sprintf(tempstr, "(%3d, %3d)", mx, my);
-	putfonts8_asc_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, tempstr);
-	sprintf(tempstr, "total memory:%dMB   free:%d KB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
-	putfonts8_asc_sht(sht_back, 0, 16 * 2, COL8_FFFFFF, COL8_008484, tempstr);
+	// // memory
+	// sprintf(tempstr, "(%3d, %3d)", mx, my);
+	// putfonts8_asc_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, tempstr);
+	// sprintf(tempstr, "total memory:%dMB   free:%d KB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
+	// putfonts8_asc_sht(sht_back, 0, 16 * 2, COL8_FFFFFF, COL8_008484, tempstr);
 	// key control
 	int key_to = 0, key_shift, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1;
 	fifo32_init(&keycmd, 32, keycmd_buf, 0);
@@ -142,8 +146,8 @@ void HariMain(void)
 			if (256 <= i AND i <= 511) // 键盘数据
 			{
 				i -= 256;
-				sprintf(tempstr, "%02X", i);
-				putfonts8_asc_sht(sht_back, 0, 16, COL8_FFFFFF, COL8_008484, tempstr);
+				// sprintf(tempstr, "%02X", i);
+				// putfonts8_asc_sht(sht_back, 0, 16, COL8_FFFFFF, COL8_008484, tempstr);
 				if (i < 0x80)
 				{
 					if (key_shift == 0)
@@ -271,20 +275,20 @@ void HariMain(void)
 				i -= 512;
 				if (mouse_decode(&mdec, i) != 0)
 				{
-					sprintf(tempstr, "[lcr %4d %4d]", mdec.x, mdec.y);
-					if ((mdec.btn & 0x01) != 0)
-					{
-						tempstr[1] = 'L';
-					}
-					if ((mdec.btn & 0x02) != 0)
-					{
-						tempstr[3] = 'R';
-					}
-					if ((mdec.btn & 0x04) != 0)
-					{
-						tempstr[2] = 'C';
-					}
-					putfonts8_asc_sht(sht_back, 32, 16, COL8_FFFFFF, COL8_008484, tempstr);
+					// sprintf(tempstr, "[lcr %4d %4d]", mdec.x, mdec.y);
+					// if ((mdec.btn & 0x01) != 0)
+					// {
+					// 	tempstr[1] = 'L';
+					// }
+					// if ((mdec.btn & 0x02) != 0)
+					// {
+					// 	tempstr[3] = 'R';
+					// }
+					// if ((mdec.btn & 0x04) != 0)
+					// {
+					// 	tempstr[2] = 'C';
+					// }
+					// putfonts8_asc_sht(sht_back, 32, 16, COL8_FFFFFF, COL8_008484, tempstr);
 					mx += mdec.x;
 					my += mdec.y;
 					if (mx < 0)
@@ -303,8 +307,8 @@ void HariMain(void)
 					{
 						my = binfo->scrny - 1;
 					}
-					sprintf(tempstr, "(%3d,%3d)", mx, my);
-					putfonts8_asc_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, tempstr);
+					// sprintf(tempstr, "(%3d,%3d)", mx, my);
+					// putfonts8_asc_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, tempstr);
 					sheet_slide(sht_mouse, mx, my);
 
 					//窗口移动
@@ -344,7 +348,7 @@ void HariMain(void)
 		}
 	}
 }
-void console_task(struct SHEET *sheet)
+void console_task(struct SHEET *sheet, int memtotal)
 {
 	struct TIMER *cursor_timer;
 	char s[100];
@@ -356,6 +360,8 @@ void console_task(struct SHEET *sheet)
 	cursor_timer = timer_alloc();
 	timer_init(cursor_timer, &task->fifo, 1);
 	timer_settime(cursor_timer, 50); // 0.5s光标闪烁
+	char cmdline[100];
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
 
 	putfonts8_asc_sht(sheet, 8, 28, COL8_FFFFFF, COL8_000000, ">");
 	for (;;)
@@ -417,20 +423,22 @@ void console_task(struct SHEET *sheet)
 				else if (i == 10) // 回车键
 				{
 					putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " "); //用空格将光标擦除
-					if (cursor_y < 28 + 112)
+					cmdline[cursor_x / 8 - 2] = 0;
+					cursor_y = cons_newline(cursor_y, sheet);
+					//执行命令
+					if (strcmp(cmdline, "mem") == 0)
 					{
-						cursor_y += 16; //换行
+						sprintf(s, "total    %dMB", memtotal / (1024 * 1024));
+						putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, s);
+						cursor_y = cons_newline(cursor_y, sheet);
+						sprintf(s, "free     %dKB", memman_total(memman) / 1024);
+						putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, s);
+						cursor_y = cons_newline(cursor_y, sheet);
+						cursor_y = cons_newline(cursor_y, sheet);
 					}
-					else
+					else if (strcmp(cmdline, "clear") == 0)
 					{
-						for (y = 28; y < 28 + 112; y++)
-						{
-							for (x = 8; x < 8 + 240; x++)
-							{
-								sheet->buf[x + y * sheet->bxsize] = sheet->buf[x + (y + 16) * sheet->bxsize];
-							}
-						}
-						for (y = 28 + 112; y < 28 + 128; y++)
+						for (y = 28; y < 28 + 128; y++)
 						{
 							for (x = 8; x < 8 + 240; x++)
 							{
@@ -438,16 +446,24 @@ void console_task(struct SHEET *sheet)
 							}
 						}
 						sheet_refresh(sheet, 8, 28, 8 + 240, 28 + 128);
+						cursor_y = 28;
+					}
+					else if (cmdline[0] != 0) //未知命令
+					{
+						putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "Command Not Fond");
+						cursor_y = cons_newline(cursor_y, sheet);
+						cursor_y = cons_newline(cursor_y, sheet);
 					}
 					putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, ">"); // 显示提示符
 					cursor_x = 16;
 				}
-				else
+				else // 一般字符
 				{
 					if (cursor_x < 240)
 					{
 						s[0] = i;
 						s[1] = 0;
+						cmdline[cursor_x / 8 - 2] = i;
 						putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, s);
 						cursor_x += 8;
 					}
@@ -460,4 +476,32 @@ void console_task(struct SHEET *sheet)
 			sheet_refresh(sheet, cursor_x, cursor_y, cursor_x + 8, cursor_y + 16);
 		}
 	}
+}
+
+int cons_newline(int cursor_y, struct SHEET *sheet)
+{
+	int x, y;
+	if (cursor_y < 28 + 112)
+	{
+		cursor_y += 16; //换行
+	}
+	else
+	{
+		for (y = 28; y < 28 + 112; y++)
+		{
+			for (x = 8; x < 8 + 240; x++)
+			{
+				sheet->buf[x + y * sheet->bxsize] = sheet->buf[x + (y + 16) * sheet->bxsize];
+			}
+		}
+		for (y = 28 + 112; y < 28 + 128; y++)
+		{
+			for (x = 8; x < 8 + 240; x++)
+			{
+				sheet->buf[x + y * sheet->bxsize] = COL8_000000;
+			}
+		}
+		sheet_refresh(sheet, 8, 28, 8 + 240, 28 + 128);
+	}
+	return cursor_y;
 }
