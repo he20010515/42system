@@ -62,6 +62,7 @@ haribote.img : ipl10.bin haribote.sys Makefile
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
 		wbinimg src:ipl10.bin len:512 from:0 to:0 \
 		copy from:haribote.sys to:@: \
+		copy from:test.txt to:@: \
 		imgout:haribote.img
 
 %.gas : %.c Makefile

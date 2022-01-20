@@ -3,6 +3,16 @@
 #include "stdio.h"
 #include <string.h>
 #define KEYCMD_LED 0xed
+#define ADR_DISKIMG 0x00100000
+
+struct FILEINFO
+{
+	unsigned char name[8], ext[3], type;
+	char reserve[10];
+	unsigned short time, date, clustno;
+	unsigned int size;
+};
+
 // tasks
 void console_task(struct SHEET *sheet, int memtotal);
 void HariMain(void);
@@ -352,9 +362,11 @@ void console_task(struct SHEET *sheet, int memtotal)
 {
 	struct TIMER *cursor_timer;
 	char s[100];
-	int i, fifobuf[128], cursor_x = 16, cursor_y = 28, cursor_c = -1;
+	int i, fifobuf[128], cursor_x = 16, cursor_y = 28, cursor_c = -1, *p;
 	int x, y;
 	struct TASK *task = task_now();
+	struct FILEINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG + 0x002600);
+
 	fifo32_init(&task->fifo, 128, fifobuf, task);
 	// cursor
 	cursor_timer = timer_alloc();
@@ -447,6 +459,102 @@ void console_task(struct SHEET *sheet, int memtotal)
 						}
 						sheet_refresh(sheet, 8, 28, 8 + 240, 28 + 128);
 						cursor_y = 28;
+					}
+					else if (strcmp(cmdline, "ls") == 0) // ls
+					{
+						for (x = 0; x < 224; x++)
+						{
+							if (finfo[x].name[0] == 0x00)
+							{
+								break;
+							}
+							if (finfo[x].name[0] != 0xe5)
+							{
+								if ((finfo[x].type & 0x18) == 0)
+								{
+									sprintf(s, "filename.ext %7d", finfo[x].size);
+									for (y = 0; y < 8; y++)
+									{
+										s[y] = finfo[x].name[y];
+									}
+									s[9] = finfo[x].ext[0];
+									s[10] = finfo[x].ext[1];
+									s[11] = finfo[x].ext[2];
+									putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, s);
+									cursor_y = cons_newline(cursor_y, sheet);
+								}
+							}
+						}
+						cursor_y = cons_newline(cursor_y, sheet);
+					}
+					else if (cmdline[0] == 'c' AND cmdline[1] == 'a' AND cmdline[2] == 't') // cat 命令
+					{
+						//准备文件名
+						for (y = 0; y < 11; y++)
+						{
+							s[y] = ' ';
+						}
+						y = 0;
+						for (x = 5; y < 11 AND cmdline[x] != 0; x++)
+						{
+							if (cmdline[x] == '.' AND y <= 8)
+							{
+								y = 8;
+							}
+							else
+							{
+								s[y] = cmdline[x];
+								if ('a' <= s[y] AND s[y] <= 'z')
+								{
+									s[y] -= 'a' - 'A'; // 转换为大写
+								}
+								y++;
+							}
+						}
+						//寻找文件
+						for (x = 0; x < 224;) // TODO
+						{
+							if (finfo[x].name[0] == 0x00)
+							{
+								break;
+							}
+							if ((finfo[x].type & 0x18) == 0)
+							{
+								for (y = 0; y < 11; y++)
+								{
+									if (finfo[x].name[y] != s[y])
+									{
+										goto type_next_file;
+									}
+								}
+								break; // 找到文件
+							}
+						type_next_file:
+							x++;
+						}
+						if (x < 224 AND finfo[x].name[0] != 0x00) // 找到文件的情况
+						{
+							y = finfo[x].size;
+							p = (char *)(finfo[x].clustno * 512 + 0x003e00 + ADR_DISKIMG);
+							cursor_x = 8;
+							for (x = 0; x < y; x++)
+							{
+								s[0] = p[x];
+								s[1] = 0;
+								putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, s);
+								cursor_x += 8;
+								if (cursor_x == 8 + 240)
+								{
+									cursor_x = 8;
+									cursor_y = cons_newline(cursor_y, sheet);
+								}
+							}
+						}
+						else //没有找到文件
+						{
+							putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "File Not Found.");
+							cursor_y = cons_newline(cursor_y, sheet);
+						}
 					}
 					else if (cmdline[0] != 0) //未知命令
 					{
