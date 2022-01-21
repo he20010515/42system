@@ -1,25 +1,37 @@
 #include "bootpack.h"
 
+struct CONSOLE
+{
+    struct SHEET *sht;
+    int cur_x, cur_y, cur_c;
+};
+
 void console_task(struct SHEET *sheet, int memtotal)
 {
     struct TIMER *cursor_timer;
-    char s[100];
-    char *p;
-    int i, fifobuf[128], cursor_x = 16, cursor_y = 28, cursor_c = -1;
-    int x, y;
     struct TASK *task = task_now();
     struct FILEINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG + 0x002600);
-
-    fifo32_init(&task->fifo, 128, fifobuf, task);
-    // cursor
-    cursor_timer = timer_alloc();
-    timer_init(cursor_timer, &task->fifo, 1);
-    timer_settime(cursor_timer, 50); // 0.5s光标闪烁
-    char cmdline[100];
     struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
     struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)ADR_GDT;
+    struct CONSOLE console;
+    console.sht = sheet;
+    console.cur_x = 8;
+    console.cur_y = 28;
+    console.cur_c = -1;
+
+    char s[100];
+    char *p;
+    int i, fifobuf[128];
+    int x, y;
     int *fat = (int *)memman_alloc_4k(memman, 4 * 2880);
+    char cmdline[64];
+    fifo32_init(&task->fifo, 128, fifobuf, task);
+    timer_init(cursor_timer, &task->fifo, 1);
+    timer_settime(cursor_timer, 50); // 0.5s光标闪烁
     file_readfat(fat, (unsigned char *)(ADR_DISKIMG + 0x000200));
+
+    // cursor
+    cursor_timer = timer_alloc();
 
     putfonts8_asc_sht(sheet, 8, 28, COL8_FFFFFF, COL8_000000, ">");
     for (;;)
@@ -40,16 +52,16 @@ void console_task(struct SHEET *sheet, int memtotal)
                 {
                 case 0:
                     timer_init(cursor_timer, &task->fifo, 1);
-                    if (cursor_c >= 0)
+                    if (console.cur_c >= 0)
                     {
-                        cursor_c = COL8_000000;
+                        console.cur_c = COL8_000000;
                     }
                     break;
                 case 1:
                     timer_init(cursor_timer, &task->fifo, 0);
-                    if (cursor_c >= 0)
+                    if (console.cur_c >= 0)
                     {
-                        cursor_c = COL8_FFFFFF;
+                        console.cur_c = COL8_FFFFFF;
                     }
                     break;
                 }
@@ -59,12 +71,12 @@ void console_task(struct SHEET *sheet, int memtotal)
             {
                 if (i == 2)
                 {
-                    cursor_c = COL8_FFFFFF;
+                    console.cur_c = COL8_FFFFFF;
                 }
                 else if (i == 3)
                 {
-                    boxfill8(sheet->buf, sheet->bxsize, COL8_000000, cursor_x, 28, cursor_x + 7, 43);
-                    cursor_c = -1;
+                    boxfill8(sheet->buf, sheet->bxsize, COL8_000000, console.cur_x, 28, console.cur_x + 7, 43);
+                    console.cur_c = -1;
                 }
             }
             if (256 <= i AND i <= 511) //来自taska的键盘数据
@@ -72,27 +84,27 @@ void console_task(struct SHEET *sheet, int memtotal)
                 i -= 256;
                 if (i == 8) //退格键
                 {
-                    if (cursor_x > 16)
+                    if (console.cur_x > 16)
                     {
-                        putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " ");
-                        cursor_x -= 8;
+                        putfonts8_asc_sht(sheet, console.cur_x, console.cur_y, COL8_FFFFFF, COL8_000000, " ");
+                        console.cur_x -= 8;
                     }
                 }
                 else if (i == 10) // 回车键
                 {
-                    putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " "); //用空格将光标擦除
-                    cmdline[cursor_x / 8 - 2] = 0;
-                    cursor_y = cons_newline(cursor_y, sheet);
+                    putfonts8_asc_sht(sheet, console.cur_x, console.cur_y, COL8_FFFFFF, COL8_000000, " "); //用空格将光标擦除
+                    cmdline[console.cur_x / 8 - 2] = 0;
+                    console.cur_y = cons_newline(console.cur_y, sheet);
                     //执行命令
                     if (strcmp(cmdline, "mem") == 0)
                     {
                         sprintf(s, "total    %dMB", memtotal / (1024 * 1024));
-                        putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, s);
-                        cursor_y = cons_newline(cursor_y, sheet);
+                        putfonts8_asc_sht(sheet, 8, console.cur_y, COL8_FFFFFF, COL8_000000, s);
+                        console.cur_y = cons_newline(console.cur_y, sheet);
                         sprintf(s, "free     %dKB", memman_total(memman) / 1024);
-                        putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, s);
-                        cursor_y = cons_newline(cursor_y, sheet);
-                        cursor_y = cons_newline(cursor_y, sheet);
+                        putfonts8_asc_sht(sheet, 8, console.cur_y, COL8_FFFFFF, COL8_000000, s);
+                        console.cur_y = cons_newline(console.cur_y, sheet);
+                        console.cur_y = cons_newline(console.cur_y, sheet);
                     }
                     else if (strcmp(cmdline, "clear") == 0)
                     {
@@ -104,7 +116,7 @@ void console_task(struct SHEET *sheet, int memtotal)
                             }
                         }
                         sheet_refresh(sheet, 8, 28, 8 + 240, 28 + 128);
-                        cursor_y = 28;
+                        console.cur_y = 28;
                     }
                     else if (strcmp(cmdline, "ls") == 0) // ls
                     {
@@ -126,12 +138,12 @@ void console_task(struct SHEET *sheet, int memtotal)
                                     s[9] = finfo[x].ext[0];
                                     s[10] = finfo[x].ext[1];
                                     s[11] = finfo[x].ext[2];
-                                    putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, s);
-                                    cursor_y = cons_newline(cursor_y, sheet);
+                                    putfonts8_asc_sht(sheet, 8, console.cur_y, COL8_FFFFFF, COL8_000000, s);
+                                    console.cur_y = cons_newline(console.cur_y, sheet);
                                 }
                             }
                         }
-                        cursor_y = cons_newline(cursor_y, sheet);
+                        console.cur_y = cons_newline(console.cur_y, sheet);
                     }
                     else if (strncmp(cmdline, "cat", 3) == 0) // cat 命令
                     {
@@ -183,29 +195,29 @@ void console_task(struct SHEET *sheet, int memtotal)
                             y = finfo[x].size;
                             p = (char *)memman_alloc_4k(memman, finfo[x].size);
                             file_loadfile(finfo[x].clustno, finfo[x].size, p, fat, (char *)(ADR_DISKIMG + 0x003e00));
-                            cursor_x = 8;
+                            console.cur_x = 8;
                             for (y = 0; y < finfo[x].size; y++) //逐个输出
                             {
                                 s[0] = p[y];
                                 s[1] = 0;
                                 if (s[0] == 0x09) // 制表符
                                 {
-                                    putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " ");
-                                    cursor_x += 8;
-                                    if (cursor_x == 8 + 240)
+                                    putfonts8_asc_sht(sheet, console.cur_x, console.cur_y, COL8_FFFFFF, COL8_000000, " ");
+                                    console.cur_x += 8;
+                                    if (console.cur_x == 8 + 240)
                                     {
-                                        cursor_x = 8;
-                                        cursor_y = cons_newline(cursor_y, sheet);
+                                        console.cur_x = 8;
+                                        console.cur_y = cons_newline(console.cur_y, sheet);
                                     }
-                                    if (((cursor_x - 8) & 0x1f) == 0)
+                                    if (((console.cur_x - 8) & 0x1f) == 0)
                                     {
                                         break; //如果被32整除则break
                                     }
                                 }
                                 else if (s[0] == 0x0a) //换行
                                 {
-                                    cursor_x = 8;
-                                    cursor_y = cons_newline(cursor_y, sheet);
+                                    console.cur_x = 8;
+                                    console.cur_y = cons_newline(console.cur_y, sheet);
                                 }
                                 else if (s[0] == 0x0d) //回车
                                 {
@@ -213,12 +225,12 @@ void console_task(struct SHEET *sheet, int memtotal)
                                 }
                                 else
                                 {
-                                    putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, s);
-                                    cursor_x += 8;
-                                    if (cursor_x == 8 + 240)
+                                    putfonts8_asc_sht(sheet, console.cur_x, console.cur_y, COL8_FFFFFF, COL8_000000, s);
+                                    console.cur_x += 8;
+                                    if (console.cur_x == 8 + 240)
                                     {
-                                        cursor_x = 8;
-                                        cursor_y = cons_newline(cursor_y, sheet);
+                                        console.cur_x = 8;
+                                        console.cur_y = cons_newline(console.cur_y, sheet);
                                     }
                                 }
                             }
@@ -226,8 +238,8 @@ void console_task(struct SHEET *sheet, int memtotal)
                         }
                         else //没有找到文件
                         {
-                            putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "File Not Found.");
-                            cursor_y = cons_newline(cursor_y, sheet);
+                            putfonts8_asc_sht(sheet, 8, console.cur_y, COL8_FFFFFF, COL8_000000, "File Not Found.");
+                            console.cur_y = cons_newline(console.cur_y, sheet);
                         }
                     }
                     else if (strcmp(cmdline, "hlt") == 0) //启动应用程序hlt.hrb
@@ -274,47 +286,92 @@ void console_task(struct SHEET *sheet, int memtotal)
                         }
                         else
                         {
-                            putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "File not fond");
-                            cursor_y = cons_newline(cursor_y, sheet);
+                            putfonts8_asc_sht(sheet, 8, console.cur_y, COL8_FFFFFF, COL8_000000, "File not fond");
+                            console.cur_y = cons_newline(console.cur_y, sheet);
                         }
-                        cursor_y = cons_newline(cursor_y, sheet);
+                        console.cur_y = cons_newline(console.cur_y, sheet);
                     }
                     else if (cmdline[0] != 0) //未知命令
                     {
-                        putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "Command Not Fond");
-                        cursor_y = cons_newline(cursor_y, sheet);
-                        cursor_y = cons_newline(cursor_y, sheet);
+                        putfonts8_asc_sht(sheet, 8, console.cur_y, COL8_FFFFFF, COL8_000000, "Command Not Fond");
+                        console.cur_y = cons_newline(console.cur_y, sheet);
+                        console.cur_y = cons_newline(console.cur_y, sheet);
                     }
-                    putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, ">"); // 显示提示符
-                    cursor_x = 16;
+                    putfonts8_asc_sht(sheet, 8, console.cur_y, COL8_FFFFFF, COL8_000000, ">"); // 显示提示符
+                    console.cur_x = 16;
                 }
                 else // 一般字符
                 {
-                    if (cursor_x < 240)
+                    if (console.cur_x < 240)
                     {
                         s[0] = i;
                         s[1] = 0;
-                        cmdline[cursor_x / 8 - 2] = i;
-                        putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, s);
-                        cursor_x += 8;
+                        cmdline[console.cur_x / 8 - 2] = i;
+                        putfonts8_asc_sht(sheet, console.cur_x, console.cur_y, COL8_FFFFFF, COL8_000000, s);
+                        console.cur_x += 8;
                     }
                 }
             }
-            if (cursor_c >= 0) // 刷新光标
+            if (console.cur_c >= 0) // 刷新光标
             {
-                boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, cursor_y, cursor_x + 7, cursor_y + 16);
+                boxfill8(sheet->buf, sheet->bxsize, console.cur_c, console.cur_x, console.cur_y, console.cur_x + 7, console.cur_y + 16);
             }
-            sheet_refresh(sheet, cursor_x, cursor_y, cursor_x + 8, cursor_y + 16);
+            sheet_refresh(sheet, console.cur_x, console.cur_y, console.cur_x + 8, console.cur_y + 16);
         }
     }
 }
 
-int cons_newline(int cursor_y, struct SHEET *sheet)
+void cons_putchar(struct CONSOLE *console, int chr, char move)
+{
+    char s[2];
+    s[0] = chr;
+    s[1] = 0;
+    if (s[0] == 0x09) //制表符
+    {
+        for (;;)
+        {
+            putfonts8_asc_sht(console->sht, console->cur_x, console->cur_y, COL8_FFFFFF, COL8_000000, " ");
+            console->cur_x += 8;
+            if (console->cur_x == 8 + 240)
+            {
+                cons_newline(console);
+            }
+            if (((console->cur_x - 8) & 0x1f) == 0)
+            {
+                break; //如果被32整除则break
+            }
+        }
+    }
+    else if (s[0] == 0x0a)
+    {
+        cons_newline(console);
+    }
+    else if (s[0] == 0x0d)
+    {
+        ;
+    }
+    else
+    {
+        putfonts8_asc_sht(console->sht, console->cur_x, console->cur_y, COL8_FFFFFF, COL8_000000, s);
+        if (move != 0)
+        {
+            console->cur_x += 8;
+            if (console->cur_x == 8 + 240)
+            {
+                cons_newline(console);
+            }
+        }
+    }
+    return;
+}
+
+int cons_newline(struct CONSOLE *console)
 {
     int x, y;
-    if (cursor_y < 28 + 112)
+    struct SHEET *sheet = console->sht;
+    if (console->cur_y < 28 + 112)
     {
-        cursor_y += 16; //换行
+        console->cur_y += 16; //换行
     }
     else
     {
@@ -334,5 +391,4 @@ int cons_newline(int cursor_y, struct SHEET *sheet)
         }
         sheet_refresh(sheet, 8, 28, 8 + 240, 28 + 128);
     }
-    return cursor_y;
 }

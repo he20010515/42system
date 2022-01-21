@@ -108,7 +108,6 @@ void task_sleep(struct TASK *task);
 void file_readfat(int *fat, unsigned char *img);
 void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
 // console.c
-int cons_newline(int cursor_y, struct SHEET *sheet);
 
 // taskFunction !! 不能调用!!
 void console_task(struct SHEET *sheet, int memtotal);
