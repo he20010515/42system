@@ -1,11 +1,5 @@
 #include "bootpack.h"
 
-struct CONSOLE
-{
-    struct SHEET *sht;
-    int cur_x, cur_y, cur_c;
-};
-
 void console_task(struct SHEET *sheet, int memtotal)
 {
     struct TIMER *cursor_timer;
@@ -27,6 +21,8 @@ void console_task(struct SHEET *sheet, int memtotal)
     timer_settime(cursor_timer, 50); // 0.5s光标闪烁
     file_readfat(fat, (unsigned char *)(ADR_DISKIMG + 0x000200));
 
+    // TEMP
+    *((int *)0xfec) = (int)&console;
     // cursor
     cons_putchar(&console, '>', 1);
     for (;;)
@@ -182,6 +178,7 @@ int cons_newline(struct CONSOLE *console)
         }
         sheet_refresh(sheet, 8, 28, 8 + 240, 28 + 128);
     }
+    console->cur_x = 8;
 }
 
 void cons_runcmd(char *cmdline, struct CONSOLE *console, int *fat, unsigned int memtotal)
@@ -279,7 +276,7 @@ void cmd_cat(struct CONSOLE *console, int *fat, char *cmdline)
 {
     int i;
     char s[20];
-    struct FILEINFO *finfo = file_search(cmdline + 5, (struct FILEINFO *)(ADR_DISKIMG + 0x002600), 224);
+    struct FILEINFO *finfo = file_search(cmdline + 4, (struct FILEINFO *)(ADR_DISKIMG + 0x002600), 224);
     char *p;
     struct SHEET *sheet = console->sht;
     struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
@@ -345,7 +342,7 @@ void cmd_hlt(struct CONSOLE *console, int *fat)
         p = (char *)memman_alloc_4k(memman, finfo[x].size);
         file_loadfile(finfo[x].clustno, finfo[x].size, p, fat, (char *)(ADR_DISKIMG + 0x003e00));
         set_segmdesc(gdt + 1003, finfo[x].size - 1, (int)p, AR_CODE32_ER);
-        farjmp(0, 1003 * 8);
+        farcall(0, 1003 * 8);
         memman_free_4k(memman, (int)*p, finfo[x].size);
     }
     else

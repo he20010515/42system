@@ -108,3 +108,8 @@ struct FILEINFO
     unsigned short time, date, clustno;
     unsigned int size;
 };
+struct CONSOLE
+{
+    struct SHEET *sht;
+    int cur_x, cur_y, cur_c;
+};

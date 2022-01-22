@@ -1,5 +1,12 @@
 [BITS 32]
-    CLI
-fin:
-    HLT
-    JMP fin
+    MOV AL,'H'
+    CALL 2*8:0x00000BA1
+    MOV AL,'E'
+    CALL 2*8:0x00000BA1
+    MOV AL,'L'
+    CALL 2*8:0x00000BA1
+    MOV AL,'L'
+    CALL 2*8:0x00000BA1
+    MOV AL,'O'
+    CALL 2*8:0x00000BA1
+    RETF

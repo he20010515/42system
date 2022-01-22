@@ -20,7 +20,7 @@ int load_cr0(void);
 void store_cr0(int cr0);
 void load_tr(int tr);
 void farjmp(int eip, int cs);
-
+void farcall(int eip, int cs);
 // dsctbl.c
 
 void init_gdtidt(void);
@@ -109,6 +109,14 @@ void file_readfat(int *fat, unsigned char *img);
 void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
 struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
 // console.c
+void cons_putchar(struct CONSOLE *console, int chr, char move);
+int cons_newline(struct CONSOLE *console);
+void cons_runcmd(char *cmdline, struct CONSOLE *console, int *fat, unsigned int memtotal);
+void cmd_mem(struct CONSOLE *console, unsigned int memtotal);
+void cmd_clear(struct CONSOLE *console);
+void cmd_ls(struct CONSOLE *console);
+void cmd_cat(struct CONSOLE *console, int *fat, char *cmdline);
+void cmd_hlt(struct CONSOLE *console, int *fat);
 
 // taskFunction !! 不能调用!!
 void console_task(struct SHEET *sheet, int memtotal);
