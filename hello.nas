@@ -1,12 +1,13 @@
+[INSTRSET "i486p"]
 [BITS 32]
-    MOV AL,'H'
-    INT 0x40
-    MOV AL,'E'
-    INT 0x40
-    MOV AL,'L'
-    INT 0x40
-    MOV AL,'L'
-    INT 0x40
-    MOV AL,'O'
-    INT 0x40
-    RETF
+        MOV     ECX,msg
+putloop:
+        MOV AL,[CS:ECX]
+        CMP AL,0
+        JE  fin
+        INT 0x40
+        ADD ECX,1
+        JMP putloop
+fin:    RETF
+msg:
+        DB "hello\n world",0

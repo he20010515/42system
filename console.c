@@ -204,8 +204,7 @@ void cons_runcmd(char *cmdline, struct CONSOLE *console, int *fat, unsigned int 
     {
         if (cmd_app(console, fat, cmdline) == 0)
         {
-            putfonts8_asc_sht(console->sht, 8, console->cur_y, COL8_FFFFFF, COL8_000000, "Command Not Fond");
-            cons_newline(console);
+            cons_putstring(console, "Command Nx ot Fond\n");
         }
     }
     return;
@@ -215,12 +214,10 @@ void cmd_mem(struct CONSOLE *console, unsigned int memtotal)
 {
     struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
     char s[30];
-    sprintf(s, "total    %dMB", memtotal / (1024 * 1024));
-    putfonts8_asc_sht(console->sht, 8, console->cur_y, COL8_FFFFFF, COL8_000000, s);
-    cons_newline(console);
-    sprintf(s, "free     %dKB", memman_total(memman) / 1024);
-    putfonts8_asc_sht(console->sht, 8, console->cur_y, COL8_FFFFFF, COL8_000000, s);
-    cons_newline(console);
+    sprintf(s, "total    %dMB\n\0", memtotal / (1024 * 1024));
+    cons_putstring(console, s);
+    sprintf(s, "free     %dKB\n\0", memman_total(memman) / 1024);
+    cons_putstring(console, s);
     return;
 }
 
@@ -255,7 +252,7 @@ void cmd_ls(struct CONSOLE *console)
         {
             if ((finfo[x].type & 0x18) == 0)
             {
-                sprintf(s, "filename.ext %7d", finfo[x].size);
+                sprintf(s, "filename.ext %7d\n\0", finfo[x].size);
                 for (y = 0; y < 8; y++)
                 {
                     s[y] = finfo[x].name[y];
@@ -263,8 +260,7 @@ void cmd_ls(struct CONSOLE *console)
                 s[9] = finfo[x].ext[0];
                 s[10] = finfo[x].ext[1];
                 s[11] = finfo[x].ext[2];
-                putfonts8_asc_sht(sheet, 8, console->cur_y, COL8_FFFFFF, COL8_000000, s);
-                cons_newline(console);
+                cons_putstring(console, s);
             }
         }
     }
@@ -291,66 +287,9 @@ void cmd_cat(struct CONSOLE *console, int *fat, char *cmdline)
     }
     else
     {
-        putfonts8_asc_sht(sheet, 8, console->cur_y, COL8_FFFFFF, COL8_000000, "File Not Found.");
-        cons_newline(console);
+        cons_putstring(console, "File Not Found\n\0");
     }
 }
-
-// void cmd_hlt(struct CONSOLE *console, int *fat)
-// {
-//     char s[20];
-//     //启动应用程序hlt.hrb
-//     int x, y;
-//     struct FILEINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG + 0x002600);
-//     struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)ADR_GDT;
-//     struct SHEET *sheet = console->sht;
-//     struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
-//     char *p;
-//     for (y = 0; y < 11; y++)
-//     {
-//         s[y] = ' ';
-//     }
-//     s[0] = 'H';
-//     s[1] = 'L';
-//     s[2] = 'T';
-//     s[8] = 'H';
-//     s[9] = 'R';
-//     s[10] = 'B';
-//     for (x = 0; x < 224;)
-//     {
-//         if (finfo[x].name[0] == 0x00)
-//         {
-//             break;
-//         }
-//         if ((finfo[x].type & 0x18) == 0)
-//         {
-//             for (y = 0; y < 11; y++)
-//             {
-//                 if (finfo[x].name[y] != s[y])
-//                 {
-//                     goto hlt_next_file;
-//                 }
-//             }
-//             break;
-//         }
-//     hlt_next_file:
-//         x++;
-//     }
-//     if (x < 224 AND finfo[x].name[0] != 0x00)
-//     {
-//         p = (char *)memman_alloc_4k(memman, finfo[x].size);
-//         file_loadfile(finfo[x].clustno, finfo[x].size, p, fat, (char *)(ADR_DISKIMG + 0x003e00));
-//         set_segmdesc(gdt + 1003, finfo[x].size - 1, (int)p, AR_CODE32_ER);
-//         farcall(0, 1003 * 8);
-//         memman_free_4k(memman, (int)*p, finfo[x].size);
-//     }
-//     else
-//     {
-//         putfonts8_asc_sht(sheet, 8, console->cur_y, COL8_FFFFFF, COL8_000000, "File not fond");
-//         cons_newline(console);
-//     }
-//     cons_newline(console);
-// }
 
 int cmd_app(struct CONSOLE *console, int *fat, char *cmdline)
 {
@@ -390,4 +329,23 @@ int cmd_app(struct CONSOLE *console, int *fat, char *cmdline)
     }
 
     return 0;
+}
+
+void cons_putstring(struct CONSOLE *console, char *s)
+{
+    for (; *s != 0; s++)
+    {
+        cons_putchar(console, *s, 1);
+    }
+    return;
+}
+
+void cons_putstring_n(struct CONSOLE *console, char *s, unsigned int n)
+{
+    int i;
+    for (i = 0; i < n; i++)
+    {
+        cons_putchar(console, s[i], 1);
+    }
+    return;
 }
