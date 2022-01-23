@@ -196,18 +196,17 @@ void cons_runcmd(char *cmdline, struct CONSOLE *console, int *fat, unsigned int 
     {
         cmd_ls(console);
     }
-    else if (strncmp(cmdline, "cat", 3) == 0) // cat 命令
+    else if (strncmp(cmdline, "cat ", 4) == 0) // cat 命令
     {
         cmd_cat(console, fat, cmdline);
     }
-    else if (strcmp(cmdline, "hlt") == 0) //启动应用程序hlt.hrb
-    {
-        cmd_hlt(console, fat);
-    }
     else if (cmdline[0] != 0) //未知命令
     {
-        putfonts8_asc_sht(console->sht, 8, console->cur_y, COL8_FFFFFF, COL8_000000, "Command Not Fond");
-        cons_newline(console);
+        if (cmd_app(console, fat, cmdline) == 0)
+        {
+            putfonts8_asc_sht(console->sht, 8, console->cur_y, COL8_FFFFFF, COL8_000000, "Command Not Fond");
+            cons_newline(console);
+        }
     }
     return;
 }
@@ -297,58 +296,98 @@ void cmd_cat(struct CONSOLE *console, int *fat, char *cmdline)
     }
 }
 
-void cmd_hlt(struct CONSOLE *console, int *fat)
+// void cmd_hlt(struct CONSOLE *console, int *fat)
+// {
+//     char s[20];
+//     //启动应用程序hlt.hrb
+//     int x, y;
+//     struct FILEINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG + 0x002600);
+//     struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)ADR_GDT;
+//     struct SHEET *sheet = console->sht;
+//     struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+//     char *p;
+//     for (y = 0; y < 11; y++)
+//     {
+//         s[y] = ' ';
+//     }
+//     s[0] = 'H';
+//     s[1] = 'L';
+//     s[2] = 'T';
+//     s[8] = 'H';
+//     s[9] = 'R';
+//     s[10] = 'B';
+//     for (x = 0; x < 224;)
+//     {
+//         if (finfo[x].name[0] == 0x00)
+//         {
+//             break;
+//         }
+//         if ((finfo[x].type & 0x18) == 0)
+//         {
+//             for (y = 0; y < 11; y++)
+//             {
+//                 if (finfo[x].name[y] != s[y])
+//                 {
+//                     goto hlt_next_file;
+//                 }
+//             }
+//             break;
+//         }
+//     hlt_next_file:
+//         x++;
+//     }
+//     if (x < 224 AND finfo[x].name[0] != 0x00)
+//     {
+//         p = (char *)memman_alloc_4k(memman, finfo[x].size);
+//         file_loadfile(finfo[x].clustno, finfo[x].size, p, fat, (char *)(ADR_DISKIMG + 0x003e00));
+//         set_segmdesc(gdt + 1003, finfo[x].size - 1, (int)p, AR_CODE32_ER);
+//         farcall(0, 1003 * 8);
+//         memman_free_4k(memman, (int)*p, finfo[x].size);
+//     }
+//     else
+//     {
+//         putfonts8_asc_sht(sheet, 8, console->cur_y, COL8_FFFFFF, COL8_000000, "File not fond");
+//         cons_newline(console);
+//     }
+//     cons_newline(console);
+// }
+
+int cmd_app(struct CONSOLE *console, int *fat, char *cmdline)
 {
-    char s[20];
-    //启动应用程序hlt.hrb
-    int x, y;
-    struct FILEINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG + 0x002600);
-    struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)ADR_GDT;
-    struct SHEET *sheet = console->sht;
     struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
-    char *p;
-    for (y = 0; y < 11; y++)
+    struct FILEINFO *finfo;
+    struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)ADR_GDT;
+    char name[18], *p;
+    int i;
+    for (i = 0; i < 13; i++)
     {
-        s[y] = ' ';
-    }
-    s[0] = 'H';
-    s[1] = 'L';
-    s[2] = 'T';
-    s[8] = 'H';
-    s[9] = 'R';
-    s[10] = 'B';
-    for (x = 0; x < 224;)
-    {
-        if (finfo[x].name[0] == 0x00)
+        if (cmdline[i] <= ' ')
         {
             break;
         }
-        if ((finfo[x].type & 0x18) == 0)
-        {
-            for (y = 0; y < 11; y++)
-            {
-                if (finfo[x].name[y] != s[y])
-                {
-                    goto hlt_next_file;
-                }
-            }
-            break;
-        }
-    hlt_next_file:
-        x++;
+        name[i] = cmdline[i];
     }
-    if (x < 224 AND finfo[x].name[0] != 0x00)
+    name[i] = 0;
+    finfo = file_search(name, (struct FILEINFO *)(ADR_DISKIMG + 0x002600), 224);
+    if (finfo == 0 AND name[i - 1] != '.')
     {
-        p = (char *)memman_alloc_4k(memman, finfo[x].size);
-        file_loadfile(finfo[x].clustno, finfo[x].size, p, fat, (char *)(ADR_DISKIMG + 0x003e00));
-        set_segmdesc(gdt + 1003, finfo[x].size - 1, (int)p, AR_CODE32_ER);
+        name[i] = '.';
+        name[i + 1] = 'H';
+        name[i + 2] = 'R';
+        name[i + 3] = 'B';
+        name[i + 4] = 0;
+        finfo = file_search(name, (struct FILEINFO *)(ADR_DISKIMG + 0x002600), 224);
+    }
+    if (finfo != 0)
+    {
+        p = (char *)memman_alloc_4k(memman, finfo->size);
+        file_loadfile(finfo->clustno, finfo->size, p, fat, (char *)(ADR_DISKIMG + 0x003e00));
+        set_segmdesc(gdt + 1003, finfo->size - 1, (int)p, AR_CODE32_ER);
         farcall(0, 1003 * 8);
-        memman_free_4k(memman, (int)*p, finfo[x].size);
-    }
-    else
-    {
-        putfonts8_asc_sht(sheet, 8, console->cur_y, COL8_FFFFFF, COL8_000000, "File not fond");
+        memman_free_4k(memman, (int)p, finfo->size);
         cons_newline(console);
+        return 1;
     }
-    cons_newline(console);
+
+    return 0;
 }

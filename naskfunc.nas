@@ -223,10 +223,11 @@ _farcall:
 		CALL 	FAR [ESP+4] ;eip,cs
 		RET
 _asm_cons_putchar:
+		STI
 		PUSH	1             ;AH和EAX的高位置0,将EAx置为已存入字符编码时的状态
 		AND		EAX,0xff
 		PUSH	EAX
 		PUSH    DWORD [0x0fec]
 		CALL	_cons_putchar
 		ADD		ESP,12         ;将栈中的数据丢弃
-		RETF
+		IRETD

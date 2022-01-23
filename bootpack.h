@@ -21,6 +21,7 @@ void store_cr0(int cr0);
 void load_tr(int tr);
 void farjmp(int eip, int cs);
 void farcall(int eip, int cs);
+void asm_cons_putchar(void);
 // dsctbl.c
 
 void init_gdtidt(void);
