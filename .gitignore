@@ -15,4 +15,6 @@
 *.bim
 *.nas
 !hello.nas
+!hello2.nas
+
 

@@ -10,8 +10,6 @@ void console_task(struct SHEET *sheet, int memtotal)
     console.cur_x = 8;
     console.cur_y = 28;
     console.cur_c = -1;
-
-    char s[100];
     int i, fifobuf[128];
     int *fat = (int *)memman_alloc_4k(memman, 4 * 2880);
     char cmdline[64];
@@ -22,7 +20,7 @@ void console_task(struct SHEET *sheet, int memtotal)
     file_readfat(fat, (unsigned char *)(ADR_DISKIMG + 0x000200));
 
     // TEMP
-    *((int *)0xfec) = (int)&console;
+    *((int *)0x0fec) = (int)&console;
     // cursor
     cons_putchar(&console, '>', 1);
     for (;;)
@@ -204,7 +202,7 @@ void cons_runcmd(char *cmdline, struct CONSOLE *console, int *fat, unsigned int 
     {
         if (cmd_app(console, fat, cmdline) == 0)
         {
-            cons_putstring(console, "Command Nx ot Fond\n");
+            cons_putstring(console, "Command Not Fond\n");
         }
     }
     return;
@@ -321,6 +319,7 @@ int cmd_app(struct CONSOLE *console, int *fat, char *cmdline)
     {
         p = (char *)memman_alloc_4k(memman, finfo->size);
         file_loadfile(finfo->clustno, finfo->size, p, fat, (char *)(ADR_DISKIMG + 0x003e00));
+        *((int *)0xfe8) = (int)p; //存储代码段地址
         set_segmdesc(gdt + 1003, finfo->size - 1, (int)p, AR_CODE32_ER);
         farcall(0, 1003 * 8);
         memman_free_4k(memman, (int)p, finfo->size);
@@ -346,6 +345,25 @@ void cons_putstring_n(struct CONSOLE *console, char *s, unsigned int n)
     for (i = 0; i < n; i++)
     {
         cons_putchar(console, s[i], 1);
+    }
+    return;
+}
+
+void hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax)
+{
+    int cs_base = *((int *)0xfe8);
+    struct CONSOLE *cons = (struct CONSOLE *)*((int *)0x0fec);
+    if (edx == 1)
+    {
+        cons_putchar(cons, eax & 0xff, 1);
+    }
+    else if (edx == 2)
+    {
+        cons_putstring(cons, (char *)ebx + cs_base);
+    }
+    else if (edx == 3)
+    {
+        cons_putstring_n(cons, (char *)ebx + cs_base, ecx);
     }
     return;
 }

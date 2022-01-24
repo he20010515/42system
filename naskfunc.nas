@@ -16,10 +16,11 @@
 		GLOBAL	_load_cr0, _store_cr0
 		GLOBAL  _asm_inthandler21,_asm_inthandler2c,_asm_inthandler27,_asm_inthandler20
 		EXTERN  _inthandler21,_inthandler2c,_inthandler27,_inthandler20
-		EXTERN 	_cons_putchar
+		EXTERN 	_hrb_api
 		GLOBAL	_memtest_sub
 		GLOBAL  _load_tr,_taskswitch4,_taskswitch3,_farjmp,_farcall
 		GLOBAL  _asm_cons_putchar
+		GLOBAL  _asm_hrb_api
 
 [SECTION .text]	
 
@@ -222,14 +223,11 @@ _farjmp:		;void farjmp(int eip,int cs)
 _farcall:
 		CALL 	FAR [ESP+4] ;eip,cs
 		RET
-_asm_cons_putchar:
+_asm_hrb_api:
 		STI
 		PUSHAD
-		PUSH	1             ;AH和EAX的高位置0,将EAx置为已存入字符编码时的状态
-		AND		EAX,0xff
-		PUSH	EAX
-		PUSH    DWORD [0x0fec]
-		CALL	_cons_putchar
-		ADD		ESP,12         ;将栈中的数据丢弃
+		PUSHAD
+		CALL 	_hrb_api
+		ADD		ESP,32
 		POPAD
 		IRETD

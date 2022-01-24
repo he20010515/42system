@@ -22,6 +22,7 @@ void load_tr(int tr);
 void farjmp(int eip, int cs);
 void farcall(int eip, int cs);
 void asm_cons_putchar(void);
+void asm_hrb_api(void);
 // dsctbl.c
 
 void init_gdtidt(void);
@@ -94,6 +95,7 @@ void putfonts8_asc_sht(struct SHEET *sht, int x, int y, int c, int b, char *s);
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char act);
 void make_wtitle8(unsigned char *buf, int xsize, char *title, char act);
 void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
+void sheet_refreshmap(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0);
 
 // mtask.c
 struct TASK *task_init(struct MEMMAN *memman);
@@ -118,6 +120,7 @@ void cmd_clear(struct CONSOLE *console);
 void cmd_ls(struct CONSOLE *console);
 void cmd_cat(struct CONSOLE *console, int *fat, char *cmdline);
 void cmd_hlt(struct CONSOLE *console, int *fat);
+void hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
 
 // taskFunction !! 不能调用!!
 void console_task(struct SHEET *sheet, int memtotal);

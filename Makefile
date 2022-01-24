@@ -59,16 +59,20 @@ bootpack.hrb : bootpack.bim Makefile
 haribote.sys : asmhead.bin bootpack.hrb Makefile
 	$(COPY) /B asmhead.bin+bootpack.hrb haribote.sys
 
-haribote.img : ipl10.bin haribote.sys Makefile hello.hrb
+haribote.img : ipl10.bin haribote.sys Makefile hello.hrb hello2.hrb
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
 		wbinimg src:ipl10.bin len:512 from:0 to:0 \
 		copy from:haribote.sys to:@: \
 		copy from:test.txt to:@: \
 		copy from:hello.hrb to:@: \
+		copy from:hello2.hrb to:@: \
 		imgout:haribote.img
-
+# applications:
 hello.hrb : hello.nas Makefile
 	$(NASK) hello.nas hello.hrb hello.lst
+
+hello2.hrb : hello2.nas Makefile
+	$(NASK) hello2.nas hello2.hrb hello2.lst
 
 %.gas : %.c Makefile
 	$(CC1) -o $*.gas $*.c

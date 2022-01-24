@@ -115,7 +115,7 @@ void HariMain(void)
 	sheet_updown(sht_win_taska, 4);
 	sheet_updown(sht_win_console, 1);
 	sheet_updown(sht_mouse, 5);
-	int key_to = 0, key_shift, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1;
+	int key_to = 0, key_shift = 0, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1;
 	fifo32_init(&keycmd, 32, keycmd_buf, 0);
 	//设置键盘灯状态
 	fifo32_put(&keycmd, KEYCMD_LED);

@@ -7,7 +7,7 @@ struct SHTCTL *shtctl_init(struct MEMMAN *memman, unsigned char *vram, int xsize
     ctl = (struct SHTCTL *)memman_alloc_4k(memman, sizeof(struct SHTCTL));
     if (ctl == 0)
     {
-        //sheet管理器申请失败
+        // sheet管理器申请失败
         return ctl;
     }
     ctl->map = (unsigned char *)memman_alloc_4k(memman, xsize * ysize);
@@ -44,7 +44,7 @@ struct SHEET *sheet_alloc(struct SHTCTL *ctl)
             return sht;
         }
     }
-    return -1; //所有的SHEET都处于正在使用状态
+    return (struct SHEET *)0; //所有的SHEET都处于正在使用状态
 }
 
 void sheet_setbuf(struct SHEET *sht, unsigned char *buf, int xsize, int ysize, int col_inv)
@@ -194,7 +194,6 @@ void sheet_refreshmap(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, in
 
 void sheet_refresh(struct SHEET *sht, int bx0, int by0, int bx1, int by1)
 {
-    struct SHTCTL *ctl;
     if (sht->height >= 0)
     {
         sheet_refreshsub(sht->shtctl, sht->vx0 + bx0, sht->vy0 + by0, sht->vx0 + bx1, sht->vy0 + by1, sht->height, sht->height);
@@ -219,7 +218,7 @@ void sheet_slide(struct SHEET *sht, int vx0, int vy0)
 void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0, int h1)
 {
     int h, bx, by, vx, vy, bx0, by0, bx1, by1;
-    unsigned char *buf, c, *vram = ctl->vram, sid;
+    unsigned char *buf,  *vram = ctl->vram, sid;
     struct SHEET *sht;
     /* 如果refresh的范围超出了画面则进行修正 */
     if (vx0 < 0)
