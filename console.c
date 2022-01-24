@@ -294,7 +294,7 @@ int cmd_app(struct CONSOLE *console, int *fat, char *cmdline)
     struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
     struct FILEINFO *finfo;
     struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)ADR_GDT;
-    char name[18], *p;
+    char name[18], *p, *q;
     int i;
     for (i = 0; i < 13; i++)
     {
@@ -318,9 +318,11 @@ int cmd_app(struct CONSOLE *console, int *fat, char *cmdline)
     if (finfo != 0)
     {
         p = (char *)memman_alloc_4k(memman, finfo->size);
-        file_loadfile(finfo->clustno, finfo->size, p, fat, (char *)(ADR_DISKIMG + 0x003e00));
+        q = (char *)memman_alloc_4k(memman, 64 * 1024);
         *((int *)0xfe8) = (int)p; //存储代码段地址
+        file_loadfile(finfo->clustno, finfo->size, p, fat, (char *)(ADR_DISKIMG + 0x003e00));
         set_segmdesc(gdt + 1003, finfo->size - 1, (int)p, AR_CODE32_ER);
+        set_segmdesc(gdt + 1004, 64 * 1024 - 1, (int)q, AR_DATA32_RW);
         if (finfo->size >= 8 AND strncmp(p + 4, "Hari", 4) == 0)
         {
             p[0] = 0xe8;
