@@ -333,8 +333,9 @@ int cmd_app(struct CONSOLE *console, int *fat, char *cmdline)
             p[5] = 0xcb;
         }
 
-        farcall(0, 1003 * 8);
+        start_app(0, 1003 * 8, 64 * 1024, 1004 * 8); // TODO 编写函数
         memman_free_4k(memman, (int)p, finfo->size);
+        memman_free_4k(memman, (int)q, 64 * 1024);
         cons_newline(console);
         return 1;
     }
