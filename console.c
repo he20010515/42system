@@ -1,5 +1,6 @@
 #include "bootpack.h"
-
+#include "string.h"
+#include "stdio.h"
 void console_task(struct SHEET *sheet, int memtotal)
 {
     struct TIMER *cursor_timer;
@@ -177,7 +178,7 @@ int cons_newline(struct CONSOLE *console)
         sheet_refresh(sheet, 8, 28, 8 + 240, 28 + 128);
     }
     console->cur_x = 8;
-    return;
+    return 0;
 }
 
 void cons_runcmd(char *cmdline, struct CONSOLE *console, int *fat, unsigned int memtotal)
@@ -238,7 +239,6 @@ void cmd_clear(struct CONSOLE *console)
 void cmd_ls(struct CONSOLE *console)
 {
     int x, y;
-    struct SHEET *sheet = console->sht;
     struct FILEINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG + 0x002600);
     char s[30];
     for (x = 0; x < 224; x++)
@@ -269,10 +269,8 @@ void cmd_ls(struct CONSOLE *console)
 void cmd_cat(struct CONSOLE *console, int *fat, char *cmdline)
 {
     int i;
-    char s[20];
     struct FILEINFO *finfo = file_search(cmdline + 4, (struct FILEINFO *)(ADR_DISKIMG + 0x002600), 224);
     char *p;
-    struct SHEET *sheet = console->sht;
     struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
     //准备文件名
     if (finfo != 0)
@@ -335,7 +333,7 @@ int cmd_app(struct CONSOLE *console, int *fat, char *cmdline)
             p[5] = 0xcb;
         }
 
-        start_app(0, 1003 * 8, 64 * 1024, 1004 * 8, &(task->tss.esp0));
+        start_app(0, 1003 * 8, 64 * 1024, 1004 * 8, (int)&(task->tss.esp0));
         memman_free_4k(memman, (int)p, finfo->size);
         memman_free_4k(memman, (int)q, 64 * 1024);
         cons_newline(console);
@@ -349,7 +347,7 @@ void cons_putstring(struct CONSOLE *console, char *s)
 {
     for (; *s != 0; s++)
     {
-        cons_putchar(console, *s, 1);
+        cons_putchar(console, (int)*s, 1);
     }
     return;
 }

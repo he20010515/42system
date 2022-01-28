@@ -127,6 +127,10 @@ clean :
 	-$(DEL) bootpack.hrb
 	-$(DEL) haribote.sys
 
+rebuild : 
+	$(MAKE) src_only
+	$(MAKE) img
+
 src_only :
 	$(MAKE) clean
 	-$(DEL) haribote.img

@@ -124,7 +124,8 @@ void cmd_ls(struct CONSOLE *console);
 void cmd_cat(struct CONSOLE *console, int *fat, char *cmdline);
 void cmd_hlt(struct CONSOLE *console, int *fat);
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
-
+int cmd_app(struct CONSOLE *console, int *fat, char *cmdline);
+void cons_putstring(struct CONSOLE *console, char *s);
 // taskFunction !! 不能调用!!
 void console_task(struct SHEET *sheet, int memtotal);
 void HariMain(void);
