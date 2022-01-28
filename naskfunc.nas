@@ -20,7 +20,7 @@
 		GLOBAL	_memtest_sub
 		GLOBAL  _load_tr,_taskswitch4,_taskswitch3,_farjmp,_farcall
 		GLOBAL  _asm_cons_putchar
-		GLOBAL  _asm_hrb_api
+		GLOBAL  _asm_hrb_api,_start_app
 
 [SECTION .text]	
 
@@ -113,13 +113,38 @@ _asm_inthandler21:
 		PUSH	ES
 		PUSH	DS
 		PUSHAD
+		MOV		AX,SS
+		CMP		AX,1*8
+		JNE		.from_app
+;	OSが動いているときに割り込まれたのでほぼ今までどおり
 		MOV		EAX,ESP
-		PUSH	EAX
+		PUSH	SS				; 割り込まれたときのSSを保存
+		PUSH	EAX				; 割り込まれたときのESPを保存
 		MOV		AX,SS
 		MOV		DS,AX
 		MOV		ES,AX
 		CALL	_inthandler21
+		ADD		ESP,8
+		POPAD
+		POP		DS
+		POP		ES
+		IRETD
+.from_app:
+;	アプリが動いているときに割り込まれた
+		MOV		EAX,1*8
+		MOV		DS,AX			; とりあえずDSだけOS用にする
+		MOV		ECX,[0xfe4]		; OSのESP
+		ADD		ECX,-8
+		MOV		[ECX+4],SS		; 割り込まれたときのSSを保存
+		MOV		[ECX  ],ESP		; 割り込まれたときのESPを保存
+		MOV		SS,AX
+		MOV		ES,AX
+		MOV		ESP,ECX
+		CALL	_inthandler21
+		POP		ECX
 		POP		EAX
+		MOV		SS,AX			; SSをアプリ用に戻す
+		MOV		ESP,ECX			; ESPもアプリ用に戻す
 		POPAD
 		POP		DS
 		POP		ES
@@ -129,13 +154,38 @@ _asm_inthandler2c:
 		PUSH	ES
 		PUSH	DS
 		PUSHAD
+		MOV		AX,SS
+		CMP		AX,1*8
+		JNE		.from_app
+;	OSが動いているときに割り込まれたのでほぼ今までどおり
 		MOV		EAX,ESP
-		PUSH	EAX
+		PUSH	SS				; 割り込まれたときのSSを保存
+		PUSH	EAX				; 割り込まれたときのESPを保存
 		MOV		AX,SS
 		MOV		DS,AX
 		MOV		ES,AX
 		CALL	_inthandler2c
+		ADD		ESP,8
+		POPAD
+		POP		DS
+		POP		ES
+		IRETD
+.from_app:
+;	アプリが動いているときに割り込まれた
+		MOV		EAX,1*8
+		MOV		DS,AX			; とりあえずDSだけOS用にする
+		MOV		ECX,[0xfe4]		; OSのESP
+		ADD		ECX,-8
+		MOV		[ECX+4],SS		; 割り込まれたときのSSを保存
+		MOV		[ECX  ],ESP		; 割り込まれたときのESPを保存
+		MOV		SS,AX
+		MOV		ES,AX
+		MOV		ESP,ECX
+		CALL	_inthandler2c
+		POP		ECX
 		POP		EAX
+		MOV		SS,AX			; SSをアプリ用に戻す
+		MOV		ESP,ECX			; ESPもアプリ用に戻す
 		POPAD
 		POP		DS
 		POP		ES
@@ -145,13 +195,38 @@ _asm_inthandler27:
 		PUSH	ES
 		PUSH	DS
 		PUSHAD
+		MOV		AX,SS
+		CMP		AX,1*8
+		JNE		.from_app
+;	OSが動いているときに割り込まれたのでほぼ今までどおり
 		MOV		EAX,ESP
-		PUSH	EAX
+		PUSH	SS				; 割り込まれたときのSSを保存
+		PUSH	EAX				; 割り込まれたときのESPを保存
 		MOV		AX,SS
 		MOV		DS,AX
 		MOV		ES,AX
 		CALL	_inthandler27
+		ADD		ESP,8
+		POPAD
+		POP		DS
+		POP		ES
+		IRETD
+.from_app:
+;	アプリが動いているときに割り込まれた
+		MOV		EAX,1*8
+		MOV		DS,AX			; とりあえずDSだけOS用にする
+		MOV		ECX,[0xfe4]		; OSのESP
+		ADD		ECX,-8
+		MOV		[ECX+4],SS		; 割り込まれたときのSSを保存
+		MOV		[ECX  ],ESP		; 割り込まれたときのESPを保存
+		MOV		SS,AX
+		MOV		ES,AX
+		MOV		ESP,ECX
+		CALL	_inthandler27
+		POP		ECX
 		POP		EAX
+		MOV		SS,AX			; SSをアプリ用に戻す
+		MOV		ESP,ECX			; ESPもアプリ用に戻す
 		POPAD
 		POP		DS
 		POP		ES
@@ -161,13 +236,38 @@ _asm_inthandler20:
 		PUSH	ES
 		PUSH	DS
 		PUSHAD
+		MOV		AX,SS
+		CMP		AX,1*8
+		JNE		.from_app
+;	OSが動いているときに割り込まれたのでほぼ今までどおり
 		MOV		EAX,ESP
-		PUSH	EAX
+		PUSH	SS				; 割り込まれたときのSSを保存
+		PUSH	EAX				; 割り込まれたときのESPを保存
 		MOV		AX,SS
 		MOV		DS,AX
 		MOV		ES,AX
 		CALL	_inthandler20
+		ADD		ESP,8
+		POPAD
+		POP		DS
+		POP		ES
+		IRETD
+.from_app:
+;	アプリが動いているときに割り込まれた
+		MOV		EAX,1*8
+		MOV		DS,AX			; とりあえずDSだけOS用にする
+		MOV		ECX,[0xfe4]		; OSのESP
+		ADD		ECX,-8
+		MOV		[ECX+4],SS		; 割り込まれたときのSSを保存
+		MOV		[ECX  ],ESP		; 割り込まれたときのESPを保存
+		MOV		SS,AX
+		MOV		ES,AX
+		MOV		ESP,ECX
+		CALL	_inthandler20
+		POP		ECX
 		POP		EAX
+		MOV		SS,AX			; SSをアプリ用に戻す
+		MOV		ESP,ECX			; ESPもアプリ用に戻す
 		POPAD
 		POP		DS
 		POP		ES
@@ -224,10 +324,81 @@ _farcall:
 		CALL 	FAR [ESP+4] ;eip,cs
 		RET
 _asm_hrb_api:
-		STI
-		PUSHAD
-		PUSHAD
-		CALL 	_hrb_api
-		ADD		ESP,32
+		; 禁止中断请求
+		PUSH	DS
+		PUSH	ES
+		PUSHAD		; 用于保存的PUSH
+		MOV		EAX,1*8
+		MOV		DS,AX			; 现仅将DS设定为操作系统用
+		MOV		ECX,[0xfe4]		; 操作系统的ESP
+		ADD		ECX,-40
+		MOV		[ECX+32],ESP	; 保存应用程序的ESP寄存器
+		MOV		[ECX+36],SS		; 保存应用程序的SS寄存器
+
+; 将PUSHAD的值复制到系统栈
+		MOV		EDX,[ESP   ]
+		MOV		EBX,[ESP+ 4]
+		MOV		[ECX   ],EDX	; 复制传递给hrb_api
+		MOV		[ECX+ 4],EBX	; 复制传递给hrb_api
+		MOV		EDX,[ESP+ 8]
+		MOV		EBX,[ESP+12]
+		MOV		[ECX+ 8],EDX	; 复制传递给hrb_api
+		MOV		[ECX+12],EBX	; 复制传递给hrb_api
+		MOV		EDX,[ESP+16]
+		MOV		EBX,[ESP+20]
+		MOV		[ECX+16],EDX	; 复制传递给hrb_api
+		MOV		[ECX+20],EBX	; 复制传递给hrb_api
+		MOV		EDX,[ESP+24]
+		MOV		EBX,[ESP+28]
+		MOV		[ECX+24],EDX	; 复制传递给hrb_api
+		MOV		[ECX+28],EBX	; 复制传递给hrb_api
+
+		MOV		ES,AX			; 将剩余的段寄存器也设为操作系统用
+		MOV		SS,AX
+		MOV		ESP,ECX
+		STI			; 恢复中断请求
+
+		CALL	_hrb_api
+
+		MOV		ECX,[ESP+32]	; 取出应用程序的ESP
+		MOV		EAX,[ESP+36]	; 取出应用程序的SS
+		CLI
+		MOV		SS,AX
+		MOV		ESP,ECX
 		POPAD
-		IRETD
+		POP		ES
+		POP		DS
+		IRETD		; 自动执行STI
+
+_start_app:		; void start_app(int eip, int cs, int esp, int ds);
+		PUSHAD		; 将32位寄存器的值全部保存起来
+		MOV		EAX,[ESP+36]	; 应用程序用EIP
+		MOV		ECX,[ESP+40]	; 应用程序用CS
+		MOV		EDX,[ESP+44]	; 应用程序用ESP
+		MOV		EBX,[ESP+48]	; 应用程序用DS/SS
+		MOV		[0xfe4],ESP		; 操作系统用ESP
+		CLI			; 切换过程中禁止中断
+		MOV		ES,BX
+		MOV		SS,BX
+		MOV		DS,BX
+		MOV		FS,BX
+		MOV		GS,BX
+		MOV		ESP,EDX
+		STI			; 切换完成后恢复中断
+		PUSH	ECX				; far-CALL的PUSH(cs)
+		PUSH	EAX				; far-CALL的PUSH（eip）
+		CALL	FAR [ESP]		; 调出应用程序
+
+;	应用程序结束后返回此处
+
+		MOV		EAX,1*8			; 操作系统用DS/SS
+		CLI			; 禁止终端请求
+		MOV		ES,AX
+		MOV		SS,AX
+		MOV		DS,AX
+		MOV		FS,AX
+		MOV		GS,AX
+		MOV		ESP,[0xfe4]
+		STI			; 切换完成后恢复中断请求
+		POPAD	; 恢复之前保存的寄存器值
+		RET

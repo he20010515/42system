@@ -113,6 +113,8 @@ clean :
 	-$(DEL) *.lst
 	-$(DEL) *.gas
 	-$(DEL) *.obj
+	-$(DEL) *.map
+	-$(DEL) *.bim
 	-$(DEL) bootpack.nas
 	-$(DEL) bootpack.map
 	-$(DEL) bootpack.bim
