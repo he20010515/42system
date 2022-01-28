@@ -15,6 +15,7 @@ void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
 void asm_inthandler20(void);
+void asm_inthandler0d(void);
 unsigned int memtest_sub(unsigned int start, unsigned int end);
 int load_cr0(void);
 void store_cr0(int cr0);
@@ -34,6 +35,7 @@ void init_pic(void);
 void inthandler21(int *esp);
 void inthandler27(int *esp);
 void inthandler2c(int *esp);
+int inthandler0d(int *esp);
 
 // fifo.c
 void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf);

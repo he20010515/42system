@@ -14,8 +14,8 @@
 		GLOBAL	_io_load_eflags, _io_store_eflags
 		GLOBAL  _load_gdtr,_load_idtr
 		GLOBAL	_load_cr0, _store_cr0
-		GLOBAL  _asm_inthandler21,_asm_inthandler2c,_asm_inthandler27,_asm_inthandler20
-		EXTERN  _inthandler21,_inthandler2c,_inthandler27,_inthandler20
+		GLOBAL  _asm_inthandler21,_asm_inthandler2c,_asm_inthandler27,_asm_inthandler20,_asm_inthandler0d
+		EXTERN  _inthandler21,_inthandler2c,_inthandler27,_inthandler20,_inthandler0d
 		EXTERN 	_hrb_api
 		GLOBAL	_memtest_sub
 		GLOBAL  _load_tr,_taskswitch4,_taskswitch3,_farjmp,_farcall
@@ -108,6 +108,71 @@ _store_cr0:		; void store_cr0(int cr0);
 		MOV		EAX,[ESP+4]
 		MOV		CR0,EAX
 		RET
+
+_asm_inthandler0d: ;系统异常中断
+		STI
+		PUSH	ES
+		PUSH	DS
+		PUSHAD
+		MOV		AX,SS
+		CMP		AX,1*8
+		JNE		.from_app
+;	操作系统活动时与之前相同
+		MOV		EAX,ESP
+		PUSH	SS				; 
+		PUSH	EAX				; 
+		MOV		AX,SS
+		MOV		DS,AX
+		MOV		ES,AX
+		CALL	_inthandler0d
+		ADD		ESP,8
+		POPAD
+		POP		DS
+		POP		ES
+		ADD		ESP,4
+		IRETD
+.from_app:
+;	应用程序活动时产生中断
+		MOV		EAX,1*8
+		MOV		DS,AX			; DS设定为操作系统用
+		MOV		ECX,[0xfe4]		; OSのESP
+		ADD		ECX,-8
+		MOV		[ECX+4],SS		; 割り込まれたときのSSを保存
+		MOV		[ECX  ],ESP		; 割り込まれたときのESPを保存
+		MOV		SS,AX
+		MOV		ES,AX
+		MOV		ESP,ECX
+		STI
+		CALL	_inthandler0d
+		CLI
+		CMP		EAX,0
+		JNE		.kill
+		POP		ECX
+		POP		EAX
+		MOV		SS,AX			; SSをアプリ用に戻す
+		MOV		ESP,ECX			; ESPもアプリ用に戻す
+		POPAD
+		POP		DS
+		POP		ES
+		ADD		ESP,4			;
+		IRETD
+.kill:
+;	强制结束应用程序
+		MOV		EAX,1*8
+		MOV		ES,AX
+		MOV		SS,AX
+		MOV		DS,AX
+		MOV		FS,AX
+		MOV		GS,AX
+		MOV		ESP,[0Xfe4]		;强制返回
+		STI		
+		POPAD 					;恢复保存的寄存器值
+		RET
+
+
+
+
+
 
 _asm_inthandler21:
 		PUSH	ES
