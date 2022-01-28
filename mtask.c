@@ -126,7 +126,7 @@ struct TASK *task_alloc(void)
             return task;
         }
     }
-    return -1;
+    return 0;
 }
 void task_run(struct TASK *task, int level, int priority)
 {

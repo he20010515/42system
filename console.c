@@ -177,6 +177,7 @@ int cons_newline(struct CONSOLE *console)
         sheet_refresh(sheet, 8, 28, 8 + 240, 28 + 128);
     }
     console->cur_x = 8;
+    return;
 }
 
 void cons_runcmd(char *cmdline, struct CONSOLE *console, int *fat, unsigned int memtotal)
@@ -295,6 +296,7 @@ int cmd_app(struct CONSOLE *console, int *fat, char *cmdline)
     struct FILEINFO *finfo;
     struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)ADR_GDT;
     char name[18], *p, *q;
+    struct TASK *task = task_now();
     int i;
     for (i = 0; i < 13; i++)
     {
@@ -321,8 +323,8 @@ int cmd_app(struct CONSOLE *console, int *fat, char *cmdline)
         q = (char *)memman_alloc_4k(memman, 64 * 1024);
         *((int *)0xfe8) = (int)p; //存储代码段地址
         file_loadfile(finfo->clustno, finfo->size, p, fat, (char *)(ADR_DISKIMG + 0x003e00));
-        set_segmdesc(gdt + 1003, finfo->size - 1, (int)p, AR_CODE32_ER);
-        set_segmdesc(gdt + 1004, 64 * 1024 - 1, (int)q, AR_DATA32_RW);
+        set_segmdesc(gdt + 1003, finfo->size - 1, (int)p, AR_CODE32_ER + 0x60);
+        set_segmdesc(gdt + 1004, 64 * 1024 - 1, (int)q, AR_DATA32_RW + 0x60);
         if (finfo->size >= 8 AND strncmp(p + 4, "Hari", 4) == 0)
         {
             p[0] = 0xe8;
@@ -333,7 +335,7 @@ int cmd_app(struct CONSOLE *console, int *fat, char *cmdline)
             p[5] = 0xcb;
         }
 
-        start_app(0, 1003 * 8, 64 * 1024, 1004 * 8); // TODO 编写函数
+        start_app(0, 1003 * 8, 64 * 1024, 1004 * 8, &(task->tss.esp0));
         memman_free_4k(memman, (int)p, finfo->size);
         memman_free_4k(memman, (int)q, 64 * 1024);
         cons_newline(console);
@@ -362,9 +364,10 @@ void cons_putstring_n(struct CONSOLE *console, char *s, unsigned int n)
     return;
 }
 
-void hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax)
+int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax)
 {
     int cs_base = *((int *)0xfe8);
+    struct TASK *task = task_now();
     struct CONSOLE *cons = (struct CONSOLE *)*((int *)0x0fec);
     if (edx == 1)
     {
@@ -378,11 +381,16 @@ void hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
     {
         cons_putstring_n(cons, (char *)ebx + cs_base, ecx);
     }
-    return;
+    else if (edx == 4)
+    {
+        return &(task->tss.esp0);
+    }
+    return 0;
 }
-int inthandler0d(int *esp)
+int *inthandler0d(int *esp)
 {
+    struct TASK *task = task_now();
     struct CONSOLE *console = (struct CONSOLE *)*((int *)0x0fec);
-    cons_putstring(console,"\nINT 0D : General Protected Exception.\n");
-    return 1;
+    cons_putstring(console, "\nINT 0D : General Protected Exception.\n");
+    return &(task->tss.esp0); //应用程序强制结束
 }

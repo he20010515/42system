@@ -1,6 +1,6 @@
 //第一个c语言应用程序
-void apt_putchar(int c);
-
+void api_putchar(int c);
+void api_end(void);
 void HariMain(void)
 {
     api_putchar('A');
@@ -13,6 +13,6 @@ void HariMain(void)
     api_putchar('L');
     api_putchar('o');
     api_putchar('\n');
-
+    api_end();
     return;
 }

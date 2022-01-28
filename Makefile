@@ -120,6 +120,7 @@ clean :
 	-$(DEL) *.obj
 	-$(DEL) *.map
 	-$(DEL) *.bim
+	-$(DEL) *.hrb
 	-$(DEL) bootpack.nas
 	-$(DEL) bootpack.map
 	-$(DEL) bootpack.bim

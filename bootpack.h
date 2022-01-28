@@ -24,7 +24,7 @@ void farjmp(int eip, int cs);
 void farcall(int eip, int cs);
 void asm_cons_putchar(void);
 void asm_hrb_api(void);
-void start_app(int eip, int cs, int esp, int ds);
+void start_app(int eip, int cs, int esp, int ds,int loc_tss_esp0);
 // dsctbl.c
 
 void init_gdtidt(void);
@@ -35,7 +35,7 @@ void init_pic(void);
 void inthandler21(int *esp);
 void inthandler27(int *esp);
 void inthandler2c(int *esp);
-int inthandler0d(int *esp);
+int *inthandler0d(int *esp);
 
 // fifo.c
 void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf);
@@ -123,7 +123,7 @@ void cmd_clear(struct CONSOLE *console);
 void cmd_ls(struct CONSOLE *console);
 void cmd_cat(struct CONSOLE *console, int *fat, char *cmdline);
 void cmd_hlt(struct CONSOLE *console, int *fat);
-void hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
+int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
 
 // taskFunction !! 不能调用!!
 void console_task(struct SHEET *sheet, int memtotal);

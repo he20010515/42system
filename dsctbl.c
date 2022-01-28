@@ -29,7 +29,7 @@ void init_gdtidt(void)
     set_gatedesc(idt + 0x2c, (int)asm_inthandler2c, 2 * 8, AR_INTGATE32);
 
     // api
-    set_gatedesc(idt + 0x40, (int)asm_hrb_api, 2 * 8, AR_INTGATE32);
+    set_gatedesc(idt + 0x40, (int)asm_hrb_api, 2 * 8, AR_INTGATE32 + 0x60);
 
     return;
 }
