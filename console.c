@@ -392,3 +392,14 @@ int *inthandler0d(int *esp)
     cons_putstring(console, "\nINT 0D : General Protected Exception.\n");
     return &(task->tss.esp0); //应用程序强制结束
 }
+
+int *inthandler0c(int *esp)
+{
+    struct TASK *task = task_now();
+    struct CONSOLE *console = (struct CONSOLE *)*((int *)0x0fec);
+    cons_putstring(console, "\nINT 0C : Stack overflow.\n");
+    char s[30];
+    sprintf(s, "EIP = %08d", esp[11]);
+    cons_putstring(console, s);
+    return &(task->tss.esp0); //应用程序强制结束
+}

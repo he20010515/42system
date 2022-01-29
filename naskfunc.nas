@@ -14,8 +14,8 @@
 		GLOBAL	_io_load_eflags, _io_store_eflags
 		GLOBAL  _load_gdtr,_load_idtr
 		GLOBAL	_load_cr0, _store_cr0
-		GLOBAL  _asm_inthandler21,_asm_inthandler2c,_asm_inthandler27,_asm_inthandler20,_asm_inthandler0d
-		EXTERN  _inthandler21,_inthandler2c,_inthandler27,_inthandler20,_inthandler0d
+		GLOBAL  _asm_inthandler21,_asm_inthandler2c,_asm_inthandler27,_asm_inthandler20,_asm_inthandler0d,_asm_inthandler0c
+		EXTERN  _inthandler21,_inthandler2c,_inthandler27,_inthandler20,_inthandler0d,_inthandler0c
 		EXTERN 	_hrb_api
 		GLOBAL	_memtest_sub
 		GLOBAL  _load_tr,_taskswitch4,_taskswitch3,_farjmp,_farcall
@@ -111,6 +111,25 @@ _store_cr0:		; void store_cr0(int cr0);
 _load_tr:		; void load_tr(int tr);
 		LTR		[ESP+4]			; tr
 		RET
+
+_asm_inthandler0c:
+		PUSH	ES
+		PUSH	DS
+		PUSHAD
+		MOV		EAX,ESP
+		PUSH	EAX
+		MOV		AX,SS
+		MOV		DS,AX
+		MOV		ES,AX
+		CALL	_inthandler0c
+		CMP		EAX,0
+		JNE		end_app
+		POP		EAX
+		POPAD
+		POP		DS
+		POP		ES
+		ADD		ESP,4
+		IRETD
 
 _asm_inthandler20:
 		PUSH	ES

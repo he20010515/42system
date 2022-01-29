@@ -59,7 +59,7 @@ bootpack.hrb : bootpack.bim Makefile
 haribote.sys : asmhead.bin bootpack.hrb Makefile
 	$(COPY) /B asmhead.bin+bootpack.hrb haribote.sys
 
-haribote.img : ipl10.bin haribote.sys Makefile hello.hrb hello2.hrb a.hrb hello3.hrb crack1.hrb crack2.hrb
+haribote.img : ipl10.bin haribote.sys Makefile hello.hrb hello2.hrb a.hrb hello3.hrb crack1.hrb crack2.hrb bug1.hrb
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
 		wbinimg src:ipl10.bin len:512 from:0 to:0 \
 		copy from:haribote.sys to:@: \
@@ -70,6 +70,7 @@ haribote.img : ipl10.bin haribote.sys Makefile hello.hrb hello2.hrb a.hrb hello3
 		copy from:a.hrb to:@: \
 		copy from:crack1.hrb to:@: \
 		copy from:crack2.hrb to:@: \
+		copy from:bug1.hrb to:@: \
 		imgout:haribote.img
 # applications:
 hello.hrb : hello.nas Makefile
@@ -98,6 +99,11 @@ crack1.bim : crack1.obj a_nask.obj Makefile
 	$(OBJ2BIM) @$(RULEFILE) out:crack1.bim map:crack1.map crack1.obj a_nask.obj
 crack1.hrb : crack1.bim  Makefile
 	$(BIM2HRB) crack1.bim crack1.hrb 0
+
+bug1.bim : bug1.obj a_nask.obj Makefile
+	$(OBJ2BIM) @$(RULEFILE) out:bug1.bim map:bug1.map bug1.obj a_nask.obj
+bug1.hrb : bug1.bim Makefile
+	$(BIM2HRB) bug1.bim bug1.hrb 0
 
 
 %.gas : %.c Makefile
