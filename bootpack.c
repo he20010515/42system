@@ -210,6 +210,16 @@ void HariMain(void)
 					sheet_refresh(sht_win_taska, 0, 0, sht_win_taska->bxsize, 21);
 					sheet_refresh(sht_win_console, 0, 0, sht_win_console->bxsize, 21);
 				}
+				if (i == 0x3b AND key_shift != 0 AND task_console->tss.ss0 != 0)
+				{
+					struct CONSOLE *console = (struct CONSOLE *)*((int *)0x0fec);
+					cons_putstring(console, "end by key \n");
+					io_cli();
+					task_console->tss.eax = (int)&(task_console->tss.esp0);
+					task_console->tss.eip = (int)asm_end_app;
+					io_sti();
+				}
+
 				switch (i) // 特殊按键控制
 				{
 				case 0x2a: //左shift ON

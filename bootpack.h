@@ -25,7 +25,8 @@ void farjmp(int eip, int cs);
 void farcall(int eip, int cs);
 void asm_cons_putchar(void);
 void asm_hrb_api(void);
-void start_app(int eip, int cs, int esp, int ds,int loc_tss_esp0);
+void start_app(int eip, int cs, int esp, int ds, int loc_tss_esp0);
+void asm_end_app(void);
 // dsctbl.c
 
 void init_gdtidt(void);

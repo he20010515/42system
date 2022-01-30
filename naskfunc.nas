@@ -20,7 +20,7 @@
 		GLOBAL	_memtest_sub
 		GLOBAL  _load_tr,_taskswitch4,_taskswitch3,_farjmp,_farcall
 		GLOBAL  _asm_cons_putchar
-		GLOBAL  _asm_hrb_api,_start_app
+		GLOBAL  _asm_hrb_api,_start_app,_asm_end_app
 
 [SECTION .text]	
 
@@ -299,3 +299,8 @@ _start_app:		; void start_app(int eip, int cs, int esp, int ds,int *tss_esp0);
 		PUSH	ECX
 		PUSH	EAX
 		RETF
+_asm_end_app:
+		MOV		ESP,[EAX]
+		MOV		DWORD [EAX+4],0
+		POPAD
+		RET
