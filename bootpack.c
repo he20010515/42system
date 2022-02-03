@@ -56,6 +56,7 @@ void HariMain(void)
 
 	// sht_ctl
 	shtctl = shtctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
+	*((int *)0x0fe4) = (int)shtctl;
 	//任务切换
 	struct TASK *task_console, *task_a;
 	task_a = task_init(memman); // 第一个任务
