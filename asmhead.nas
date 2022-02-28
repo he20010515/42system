@@ -1,6 +1,5 @@
 ; haribote-os boot asm
 ; TAB=4
-;这个文件将会在以后的学习中得到解释,日语的注释也将会逐步修改成中文
 
 [INSTRSET "i486p"]
 
